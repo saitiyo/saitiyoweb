@@ -2,9 +2,9 @@ import { Button as AntdButton } from 'antd'
 import type { ButtonProps as AntdButtonProps } from 'antd'
 import type { CSSProperties } from 'react'
 
-type Props = AntdButtonProps & { text: string; style?: CSSProperties }
+type Props = Omit<AntdButtonProps, 'children'> & { text: string; className?: string; style?: CSSProperties }
 
-export default function Button({ text, style, ...props }: Props) {
+export default function Button({ text, className = '', style, ...props }: Props) {
   const mergedStyle: CSSProperties = {
     backgroundColor: 'black',
     color: 'white',
@@ -13,7 +13,11 @@ export default function Button({ text, style, ...props }: Props) {
   }
 
   return (
-    <AntdButton {...props} style={mergedStyle}>
+    <AntdButton
+      {...props}
+      style={mergedStyle}
+      className={`rounded px-4 py-2 ${className}`}
+    >
       {text}
     </AntdButton>
   )
