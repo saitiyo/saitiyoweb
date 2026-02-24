@@ -1,37 +1,55 @@
+"use client";
 import React from 'react';
 import Image from 'next/image';
 import Button from '../components/Button';
+import NoDataComponent from '../components/NoDataComponent';
+import ProjectCard from '../components/ProjectCard';
+
+
+ const _projects = [
+    { name: "Homeland Heights", status: "In Progress", daysLeft: 120, progress: 40, color: "bg-green-500", badge: 1, logo: 'dark' },
+    { name: "Homeland Heights", status: "In Progress", daysLeft: 120, progress: 40, color: "bg-green-500", badge: 1, logo: 'dark' },
+    { name: "Homeland Heights", status: "In Progress", daysLeft: 120, progress: 40, color: "bg-green-500", badge: 1, logo: 'dark' },
+    { name: "Bugolobi Flats", status: "Closed", daysLeft: 0, progress: 100, color: "bg-red-500", badge: null, logo: 'light' },
+  ];
 
 export default function ProfilePage() {
-  return (
-    // Main container with the blue border seen in your image
-    <div className="min-h-screen bg-white flex flex-col p-8 font-sans">
-      
-      {/* Header Section: Profile Info */}
-      <header className="flex items-center gap-3">
-        <div className="relative w-12 h-12 overflow-hidden rounded-full border border-gray-200">
-          <Image 
-            src="/profile-avatar.jpg" // Replace with your actual image path
-            alt="Moses O"
-            fill
-            className="object-cover"
-          />
-        </div>
-        <div className="flex flex-col">
-          <h1 className="text-lg font-semibold text-gray-900 leading-tight">Moses O</h1>
-          <p className="text-sm text-gray-500">Architect</p>
-        </div>
-      </header>
 
-      {/* Main Content: Centered Empty State */}
-      <main className="flex-grow flex flex-col items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-medium text-gray-900 mb-1">No Projects</h2>
-          <p className="text-gray-500 mb-6">You have no projects at the moment</p>
-          <Button text='Add New'/>
+
+
+const [projects, setProjects] = React.useState(_projects);
+
+
+if (projects.length === 0) {
+  return (
+    <NoDataComponent
+      title="No Projects Yet"
+      description="You haven't added any projects. Start by creating your first project to manage and track your work effectively."
+      buttonLink='/projects/addproject'
+      buttonText='Add New'
+    />
+  )
+}  
+
+
+
+return (
+    <div className="min-h-screen bg-[#F8F9FA]">
+
+      <main className="max-w-6xl mx-auto p-8">
+        {/* Title and Action Button */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
+          <Button text="Add New" />
+        </div>
+
+        {/* Projects Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {projects.map((project, index) => (
+            <ProjectCard key={index} {...project} />
+          ))}
         </div>
       </main>
-      
     </div>
   );
 }
