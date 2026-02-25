@@ -1,5 +1,6 @@
 "use client"
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   UserOutlined,
   DownloadOutlined,
@@ -8,28 +9,87 @@ import {
   DownOutlined,
 } from '@ant-design/icons';
 import { Layout, Menu, theme, Avatar, Badge } from 'antd';
+import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck } from 'lucide-react';
+import { MenuItemType } from 'antd/es/menu/interface';
+import { text } from 'stream/consumers';
+
 
 const { Header, Content, Sider } = Layout;
 
-const sidebarLabels = [
-  'Dashboard',
-  'Live Cam',
-  'Team',
-  'Equipment',
-  'Project documentation',
-  'Archives',
-  'Task board',
-];
 
-const items = sidebarLabels.map((label, index) => ({
-  key: String(index + 1),
-  label,
-}));
+
+//   'Live Cam',
+//   'Team',
+//   'Equipment',
+//   'Project documentation',
+//   'Archives',
+//   'Task board',
+
+// Map menu keys to routes
+const menuRoutes: { [key: string]: string } = {
+  
+};
+
 
 const App: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const router = useRouter();
+
+  
+const items:MenuItemType[] = [
+  {
+    key: '1',
+    icon: <LayoutDashboard size={18} />,
+    label: 'Dashboard',
+     onClick: () => router.push("/site"),
+  },
+  {
+    key: '2',
+    icon: <Webcam size={18} />,
+    label: 'Live Cam',
+     onClick: () => router.push("/site/livecam"),
+  },
+   {
+    key: '3',
+    icon: <Users size={18} />,
+    label: 'Team',
+     onClick: () => router.push("/site/team"),
+  },
+  {
+    key: '4',
+    icon: <Toolbox size={18} />,
+    label: 'Equipment',
+     onClick: () => router.push("/site/equipment"),
+  },{
+    key: '5',
+    icon: <BookOpenText size={18} />,
+    label: 'Project Documentation',
+     onClick: () => router.push("/site/projectdocumentation"),
+  },
+  {
+    key: '6',
+    icon: <FolderArchive size={18} />,
+    label: 'Archives',
+     onClick: () => router.push("/site/archives"),
+  },
+  {
+    key: '7',
+    icon: <FileCheck size={18} />,
+    label: 'Task Board',
+     onClick: () => router.push("/site/taskboard"),
+  },
+ 
+];
+
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  const handleMenuClick = (e: { key: string }) => {
+    const route = menuRoutes[e.key];
+    if (route) {
+      router.push(route);
+    }
+  };
 
   return (
     <Layout>
@@ -104,7 +164,7 @@ const App: React.FC<React.PropsWithChildren> = ({ children }) => {
           <div className="text-white text-lg font-semibold">Homeland Heights</div>
         </div>
         <div className="demo-logo-vertical" />
-        <Menu className="custom-sider-menu" theme="dark" mode="inline" defaultSelectedKeys={['1']} items={items} />
+        <Menu className="custom-sider-menu" theme="dark" mode="inline" defaultSelectedKeys={['1']} items={items}  onClick={handleMenuClick} />
       </Sider>
       <Layout>
         <Header style={{ padding: 0, backgroundColor: 'lightgray' }}>
