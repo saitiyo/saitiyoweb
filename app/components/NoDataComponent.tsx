@@ -22,13 +22,7 @@ export default function NoDataComponent({
       <div className="text-center">
         <h2 className="text-2xl font-medium text-gray-900 mb-1">{title}</h2>
         <p className="text-gray-500 mb-6">{description}</p>
-        {buttonLink ? (
-          <Link href={buttonLink}>
-            <Button text={buttonText} />
-          </Link>
-        ) : (
-          <Button text={buttonText} />
-        )}
+        <Button text={buttonText} link={buttonLink || undefined} />
       </div>
     </div>
   )

@@ -40,7 +40,7 @@ return (
         {/* Title and Action Button */}
         <div className="flex justify-between items-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-          <Button text="Add New" />
+          <Button text="Add New" link="profile/project/add" />
         </div>
 
         {/* Projects Grid */}
