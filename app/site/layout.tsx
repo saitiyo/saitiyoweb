@@ -11,7 +11,6 @@ import {
 import { Layout, Menu, theme, Avatar, Badge } from 'antd';
 import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck } from 'lucide-react';
 import { MenuItemType } from 'antd/es/menu/interface';
-import { text } from 'stream/consumers';
 
 
 const { Header, Content, Sider } = Layout;
@@ -92,8 +91,9 @@ const items:MenuItemType[] = [
   };
 
   return (
-    <Layout>
+    <Layout style={{ minHeight: '100vh' }}>
       <Sider
+        style={{ height: '100vh' }}
         breakpoint="lg"
         collapsedWidth="0"
         onBreakpoint={(broken) => {
@@ -104,6 +104,15 @@ const items:MenuItemType[] = [
         }}
       >
         <style jsx global>{`
+          /* Make layout and sider full height */
+          .ant-layout {
+            min-height: 100vh;
+          }
+          
+          .ant-layout-sider {
+            height: 100vh !important;
+          }
+
           .custom-sider-menu .ant-menu-item-selected {
             background: #e5e7eb !important;
             color: #000 !important;
@@ -166,8 +175,8 @@ const items:MenuItemType[] = [
         <div className="demo-logo-vertical" />
         <Menu className="custom-sider-menu" theme="dark" mode="inline" defaultSelectedKeys={['1']} items={items}  onClick={handleMenuClick} />
       </Sider>
-      <Layout>
-        <Header style={{ padding: 0, backgroundColor: 'lightgray' }}>
+      <Layout style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Header style={{ padding: 0, backgroundColor: 'lightgray', flexShrink: 0 }}>
           <div className="flex items-center justify-between px-6">
             <div className="text-sm font-medium text-gray-700">Dashboard</div>
 
@@ -193,10 +202,10 @@ const items:MenuItemType[] = [
             </div>
           </div>
         </Header>
-        <Content style={{ margin: '' }}>
+        <Content style={{ margin: '', flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
-              minHeight: 360,
+              flex: 1,
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
               padding: 10,
