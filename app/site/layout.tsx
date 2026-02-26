@@ -83,7 +83,17 @@ const items:MenuItemType[] = [
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  // title displayed in header; update when menu changes
+  const [headerTitle, setHeaderTitle] = React.useState('Dashboard');
+  const [selectedKey, setSelectedKey] = React.useState('1');
+
   const handleMenuClick = (e: { key: string }) => {
+    setSelectedKey(e.key);
+    // find label from menu items
+    const item = items.find((it) => it.key === e.key);
+    if (item && typeof item.label === 'string') {
+      setHeaderTitle(item.label);
+    }
     const route = menuRoutes[e.key];
     if (route) {
       router.push(route);
@@ -173,12 +183,12 @@ const items:MenuItemType[] = [
           <div className="text-white text-lg font-semibold">Homeland Heights</div>
         </div>
         <div className="demo-logo-vertical" />
-        <Menu className="custom-sider-menu" theme="dark" mode="inline" defaultSelectedKeys={['1']} items={items}  onClick={handleMenuClick} />
+        <Menu className="custom-sider-menu" theme="dark" mode="inline" selectedKeys={[selectedKey]} items={items} onClick={handleMenuClick} />
       </Sider>
       <Layout style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header style={{ padding: 0, backgroundColor: 'lightgray', flexShrink: 0 }}>
           <div className="flex items-center justify-between px-6">
-            <div className="text-sm font-medium text-gray-700">Dashboard</div>
+            <div className="text-sm font-medium text-gray-700">{headerTitle}</div>
 
             <div className="flex items-center gap-4">
               <button className="p-2 rounded hover:bg-gray-200">
