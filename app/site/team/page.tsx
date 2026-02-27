@@ -74,7 +74,7 @@ const TeamPage = () => {
         }/>
   </div>
   <div>
-            <div className="min-h-screen bg-[#F9FAFB] p-6 md:p-12">
+            <div className="min-h-screen bg-white p-6 md:p-12">
             <div className="max-w-6xl mx-auto">
                 <Tabs
                 defaultActiveKey="1"
