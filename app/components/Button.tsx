@@ -10,7 +10,7 @@ type Props = Omit<AntdButtonProps, 'children'> & {
   link?: string
 }
 
-export default function Button({
+export default function CustomButton({
   text,
   className = '',
   style,
