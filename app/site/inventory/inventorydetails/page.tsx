@@ -8,7 +8,7 @@ const InventoryDetailsPage = () => {
             <div><h1 className="text-2xl font-bold mb-4">Inventory</h1></div>
             <div><CustomButton text="Add Item" /></div>
         </div>
-        <div>
+        <div className="px-6">
             <SearchInput placeholder="Search inventory..." className="" />
         </div>
     </div>
