@@ -9,7 +9,7 @@ import {
   DownOutlined,
 } from '@ant-design/icons';
 import { Layout, Menu, theme, Avatar, Badge } from 'antd';
-import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck, Briefcase } from 'lucide-react';
+import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck, Briefcase, FileText } from 'lucide-react';
 import { MenuItemType } from 'antd/es/menu/interface';
 
 
@@ -79,6 +79,12 @@ const items:MenuItemType[] = [
   },
   {
     key: '8',
+    icon: <FileText size={18} />,
+    label: 'Site Plans',
+     onClick: () => router.push("/site/siteplans"),
+  },
+  {
+    key: '9',
     icon: <FileCheck size={18} />,
     label: 'Task Board',
      onClick: () => router.push("/site/taskboard"),
