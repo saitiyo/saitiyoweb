@@ -10,14 +10,7 @@ import { RootState } from '@/redux/store';
 import LoadingComponent from '@/app/components/LoadingComponent';
 
 
- const _projects = [
-    { name: "Homeland Heights", status: "In Progress", daysLeft: 120, progress: 40, color: "bg-green-500", badge: 1, logo: 'dark' },
-    { name: "Homeland Heights", status: "In Progress", daysLeft: 120, progress: 40, color: "bg-green-500", badge: 1, logo: 'dark' },
-    { name: "Homeland Heights", status: "In Progress", daysLeft: 120, progress: 40, color: "bg-green-500", badge: 1, logo: 'dark' },
-    { name: "Bugolobi Flats", status: "Closed", daysLeft: 0, progress: 100, color: "bg-red-500", badge: null, logo: 'light' },
-  ];
-
-const GET_MY_SITES = gql`
+export const GET_MY_SITES = gql`
   query GetMySites($userId: ID!) {
   getMySites(userId: $userId) {
     id
@@ -37,9 +30,9 @@ interface GetMySites {
 
 export default function Page() {
 
-// 0394900457
-
 const {user} = useAppSelector((state:RootState)=>state.authSlice)
+
+console.log(user)
 
 const {data,loading,error} = useQuery<GetMySites>(GET_MY_SITES,{
   variables:{
@@ -51,6 +44,7 @@ const [sites, setSites] = React.useState<Site[]>([]);
 
 
 useEffect(()=>{
+  console.log(data?.getMySites,'========sssss')
   if(data && data.getMySites){
       setSites(data.getMySites)
   }
@@ -75,7 +69,7 @@ if (sites.length === 0) {
     <div className='w-full h-screen flex justify-center items-center'>
     <NoDataComponent
       title="No Sites Yet"
-      description="You haven't added any site. Start by adding your first site to manage and track your work effectively."
+      description="You have not added any site. Start by adding your first site to manage"
       buttonLink="/my/sites/add"
       buttonText='Add New'
     />
