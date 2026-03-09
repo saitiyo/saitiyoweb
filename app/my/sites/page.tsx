@@ -1,8 +1,13 @@
 "use client";
-import React from 'react';
+import React, { useEffect } from 'react';
 import Button from '../../components/Button';
 import NoDataComponent from '../../components/NoDataComponent';
 import SiteCard from '../../components/SiteCard';
+import { gql } from '@apollo/client';
+import { useQuery } from '@apollo/client/react';
+import { useAppSelector } from '@/redux/hooks';
+import { RootState } from '@/redux/store';
+import LoadingComponent from '@/app/components/LoadingComponent';
 
 
  const _projects = [
@@ -12,11 +17,57 @@ import SiteCard from '../../components/SiteCard';
     { name: "Bugolobi Flats", status: "Closed", daysLeft: 0, progress: 100, color: "bg-red-500", badge: null, logo: 'light' },
   ];
 
-export default function ProfilePage() {
+const GET_MY_SITES = gql`
+  query GetMySites($userId: ID!) {
+  getMySites(userId: $userId) {
+    id
+    name
+    logoUrl
+    status
+    daysLeft
+    progress
+    notificationCount
+  }
+}
+`
 
+interface GetMySites {
+  getMySites:Site[]
+}
 
+export default function Page() {
+
+// 0394900457
+
+const {user} = useAppSelector((state:RootState)=>state.authSlice)
+
+const {data,loading,error} = useQuery<GetMySites>(GET_MY_SITES,{
+  variables:{
+    userId:user?._id
+  }
+})
 
 const [sites, setSites] = React.useState<Site[]>([]);
+
+
+useEffect(()=>{
+  if(data && data.getMySites){
+      setSites(data.getMySites)
+  }
+
+  if(error){
+     //handle error
+     console.log(error,"get sites error")
+  }
+},[data,error])
+
+
+
+if(loading){
+  return (
+    <LoadingComponent />
+  )
+}
 
 
 if (sites.length === 0) {

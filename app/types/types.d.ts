@@ -1,5 +1,6 @@
 
 interface User {
+    _id:string
     firstName:string
     lastName:string
     email:string
@@ -7,7 +8,7 @@ interface User {
 }
 
 type Site = {
-  id: string;
+  _id: string;
   owner:string
   name: string;
   logoUrl?: string;
