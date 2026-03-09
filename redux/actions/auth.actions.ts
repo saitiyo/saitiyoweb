@@ -4,6 +4,24 @@ import { createAsyncThunk } from "@reduxjs/toolkit"
 import  axios from "axios"
 
 
+
+export const _getQRcodeData = createAsyncThunk(
+  "qrcode/data", 
+  async function () {
+  try {
+      let { data } = await axios.get(`${API_URL}/auth/web/get-qrcode`)
+
+      console.log(data, "data from qrcode api")
+      return data
+  } catch (error) {
+    console.log(error)
+    return {
+      isError: true,
+      msg: "Error ! try again",
+    }
+  }
+})
+
 export const _getUserByToken = createAsyncThunk<
   any,
   { token: string },
@@ -20,3 +38,5 @@ export const _getUserByToken = createAsyncThunk<
     }
   }
 })
+
+

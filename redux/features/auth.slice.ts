@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { _getUserByToken } from '../actions/auth.actions'
+import { _getQRcodeData, _getUserByToken } from '../actions/auth.actions'
 
 
 
@@ -10,6 +10,8 @@ interface InitialStateType {
     msg:string
     token:string | null
     user:any | null
+    webSessionId?:string | null
+    expiresAt?:any | null
 }
 
 
@@ -20,6 +22,8 @@ const initialState:InitialStateType = {
     msg:"",
     token:null,
     user:null,
+    webSessionId:null,
+    expiresAt:null
 }
 
 const authSlice = createSlice({
@@ -53,6 +57,26 @@ const authSlice = createSlice({
         });
 
         builder.addCase(_getUserByToken.rejected, (state, action: any) => {
+            state.loading = false;
+            state.isError = action.payload.isError;
+            state.isSuccess = !action.payload.isError;
+            state.msg = action.payload.msg;
+        });
+
+        builder.addCase(_getQRcodeData.pending, state => {
+            state.loading = true;
+        });
+
+        builder.addCase(_getQRcodeData.fulfilled, (state, action) => {
+            state.loading = false;
+            state.isError = action.payload.isError;
+            if(!action.payload.isError){
+                state.webSessionId = action.payload.payload.webSessionId
+                state.expiresAt = action.payload.payload.expiresAt
+            }
+        });
+
+        builder.addCase(_getQRcodeData.rejected, (state, action: any) => {
             state.loading = false;
             state.isError = action.payload.isError;
             state.isSuccess = !action.payload.isError;
