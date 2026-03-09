@@ -28,8 +28,13 @@ export const _getUserByToken = createAsyncThunk<
   { dispatch: AppDispatch }
 >("get/user", async function (payload) {
   try {
-      let { data } = await axios.post(`${API_URL}/user/authenticate`, payload)
-    return data
+      let { data } = await axios.post(`${API_URL}/auth/authenticate`, payload , {
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${payload.token}`
+        }
+      })
+      return data
   } catch (error) {
     console.log(error)
     return {

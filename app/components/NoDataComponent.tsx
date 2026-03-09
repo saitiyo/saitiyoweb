@@ -18,7 +18,7 @@ export default function NoDataComponent({
 }: Props) {
   // Main Content: Centered Empty State
   return (
-    <div className={`flex-grow flex flex-col items-center justify-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center ${className}`}>
       <div className="text-center">
         <h2 className="text-2xl font-medium text-gray-900 mb-1">{title}</h2>
         <p className="text-gray-500 mb-6">{description}</p>

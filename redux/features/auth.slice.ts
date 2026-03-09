@@ -9,7 +9,7 @@ interface InitialStateType {
     isError:boolean
     msg:string
     token:string | null
-    user:any | null
+    user:User | null
     webSessionId?:string | null
     expiresAt?:any | null
 }

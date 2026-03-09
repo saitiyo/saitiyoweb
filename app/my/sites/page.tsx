@@ -1,9 +1,8 @@
 "use client";
 import React from 'react';
-import Image from 'next/image';
-import Button from '../components/Button';
-import NoDataComponent from '../components/NoDataComponent';
-import ProjectCard from '../components/ProjectCard';
+import Button from '../../components/Button';
+import NoDataComponent from '../../components/NoDataComponent';
+import SiteCard from '../../components/SiteCard';
 
 
  const _projects = [
@@ -17,17 +16,19 @@ export default function ProfilePage() {
 
 
 
-const [projects, setProjects] = React.useState(_projects);
+const [sites, setSites] = React.useState<Site[]>([]);
 
 
-if (projects.length === 0) {
+if (sites.length === 0) {
   return (
+    <div className='w-full h-screen flex justify-center items-center'>
     <NoDataComponent
-      title="No Projects Yet"
-      description="You haven't added any projects. Start by creating your first project to manage and track your work effectively."
-      buttonLink='/projects/addproject'
+      title="No Sites Yet"
+      description="You haven't added any site. Start by adding your first site to manage and track your work effectively."
+      buttonLink="/my/sites/add"
       buttonText='Add New'
     />
+    </div>
   )
 }  
 
@@ -39,14 +40,14 @@ return (
       <main className="max-w-6xl mx-auto p-8">
         {/* Title and Action Button */}
         <div className="flex justify-between items-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-          <Button text="Add New" link="profile/project/add" />
+          <h1 className="text-3xl font-bold text-gray-900">Sites</h1>
+          <Button text="Add New" link="/my/sites/add" />
         </div>
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects.map((project, index) => (
-            <ProjectCard key={index} {...project} />
+          {sites.length > 0 && sites.map((site, index) => (
+            <SiteCard key={index} site={site} />
           ))}
         </div>
       </main>

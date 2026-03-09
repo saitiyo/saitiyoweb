@@ -94,7 +94,7 @@ export default function Home() {
 
         // Redirect to profile after a brief delay to show success state
         setTimeout(() => {
-          router.push("/profile");
+          router.push("/my/sites");
         }, 800);
       } else {
         throw new Error("No token received");
