@@ -31,6 +31,8 @@ export default function Home() {
     (state: RootState) => state.authSlice
   );
 
+  console.log(webSessionId,"web session id on home page")
+
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authStatus, setAuthStatus] = useState<"waiting" | "scanning" | "success" | "error">("waiting");
   const [errorMessage, setErrorMessage] = useState("");
@@ -94,7 +96,7 @@ export default function Home() {
 
         // Redirect to profile after a brief delay to show success state
         setTimeout(() => {
-          router.push("/my/sites");
+          router.replace("/my/sites");
         }, 800);
       } else {
         throw new Error("No token received");

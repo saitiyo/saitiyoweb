@@ -11,6 +11,7 @@ import {
 import { Layout, Menu, theme, Avatar, Badge } from 'antd';
 import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck, Briefcase, FileText } from 'lucide-react';
 import { MenuItemType } from 'antd/es/menu/interface';
+import { useParams } from 'next/navigation';
 
 
 const { Header, Content, Sider } = Layout;
@@ -32,6 +33,9 @@ const menuRoutes: { [key: string]: string } = {
 
 const App: React.FC<React.PropsWithChildren> = ({ children }) => {
   const router = useRouter();
+  const params = useParams();
+
+  const siteId = params.id as string; // Replace with actual site ID as needed
 
   
 const items:MenuItemType[] = [
@@ -39,55 +43,55 @@ const items:MenuItemType[] = [
     key: '1',
     icon: <LayoutDashboard size={18} />,
     label: 'Dashboard',
-     onClick: () => router.push("/site"),
+     onClick: () => router.push(`/site/${siteId}`),
   },
   {
     key: '2',
     icon: <Webcam size={18} />,
     label: 'Live Cam',
-     onClick: () => router.push("/site/livecam"),
+     onClick: () => router.push(`/site/${siteId}/livecam`),
   },
    {
     key: '3',
     icon: <Users size={18} />,
     label: 'Team',
-     onClick: () => router.push("/site/team"),
+     onClick: () => router.push(`/site/${siteId}/team`),
   },
   {
     key: '4',
     icon: <Toolbox size={18} />,
     label: 'Equipment',
-     onClick: () => router.push("/site/equipment"),
+     onClick: () => router.push(`/site/${siteId}/equipment`),
   },
   {
     key: '5',
     icon: <Briefcase size={18} />,
     label: 'Inventory',
-     onClick: () => router.push("/site/inventory"),
+     onClick: () => router.push(`/site/${siteId}/inventory`),
   },
   {
     key: '6',
     icon: <BookOpenText size={18} />,
     label: 'Project Documentation',
-     onClick: () => router.push("/site/projectdocumentation"),
+     onClick: () => router.push(`/site/${siteId}/projectdocumentation`),
   },
   {
     key: '7',
     icon: <FolderArchive size={18} />,
     label: 'Archives',
-     onClick: () => router.push("/site/archives"),
+     onClick: () => router.push(`/site/${siteId}/archives`),
   },
   {
     key: '8',
     icon: <FileText size={18} />,
     label: 'Site Plans',
-     onClick: () => router.push("/site/siteplans"),
+     onClick: () => router.push(`/site/${siteId}/siteplans`),
   },
   {
     key: '9',
     icon: <FileCheck size={18} />,
     label: 'Task Board',
-     onClick: () => router.push("/site/taskboard"),
+     onClick: () => router.push(`/site/${siteId}/taskboard`),
   },
  
 ];

@@ -1,7 +1,7 @@
 // app/page.tsx
 import { Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import TaskCard from '../../components/TaskCard';
+import TaskCard from '../../../components/TaskCard';
 import CustomButton from '@/app/components/Button';
 
 export default function TaskBoard() {

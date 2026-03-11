@@ -13,7 +13,7 @@ import LoadingComponent from '@/app/components/LoadingComponent';
 export const GET_MY_SITES = gql`
   query GetMySites($userId: ID!) {
   getMySites(userId: $userId) {
-    id
+  _id
     name
     logoUrl
     status

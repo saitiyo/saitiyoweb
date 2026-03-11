@@ -3,8 +3,8 @@ import React from 'react';
 import InventoryCard from '@/app/components/InventoryCard';
 import { ArrowUpOutlined } from '@ant-design/icons';
 import DashboardCard from '@/app/components/DashboardCard';
-import totalstock from '../../assets/totalstock.png';
-import lowstock from '../../assets/lowstock.png';
+import totalstock from '../../../assets/totalstock.png';
+import lowstock from '../../../assets/lowstock.png';
 import Image from 'next/image';
 
 

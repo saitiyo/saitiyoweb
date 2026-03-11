@@ -1,9 +1,10 @@
-import ActiveContractsCard from "../components/DashboardCard";
+import ActiveContractsCard from "../../components/DashboardCard";
 import Image from 'next/image';
-import activecontracts from '../assets/activecontracts.png';
-import deadlines from '../assets/deadlines.png';
-import budget from '../assets/budget.png';
-import progress from '../assets/progress.png';
+import activecontracts from '../../assets/activecontracts.png';
+
+import deadlines from '../../assets/deadlines.png';
+import budget from '../../assets/budget.png';
+import progress from '../../assets/progress.png';
 
 const Dashboardpage = () => {
   return (

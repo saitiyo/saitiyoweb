@@ -1,9 +1,9 @@
 "use client";
 import ActiveContractsCard from "@/app/components/DashboardCard";
 import Image from "next/image";
-import activemembers from '../../assets/activemembers.png';
-import supportteam from '../../assets/supportteam.png';
-import membersonsite from '../../assets/membersonsite.png';
+import activemembers from '../../../assets/activemembers.png';
+import supportteam from '../../../assets/supportteam.png';
+import membersonsite from '../../../assets/membersonsite.png';
 import { Tabs } from 'antd';
 import MemberListItem from '@/app/components/MemberListItem';
 import { Member } from "@/app/types/member";
@@ -29,7 +29,6 @@ const TeamPage = () => {
             <MemberListItem 
               key={idx} 
               member={m} 
-              isSelected={idx === 1} // Replicating the 2nd item highlight from image
             />
           ))}
         </div>
