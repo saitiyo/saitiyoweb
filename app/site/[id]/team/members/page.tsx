@@ -1,80 +1,88 @@
 "use client";
 
 import React from 'react';
-import { Table, Tag, Avatar, Button, Tabs } from 'antd';
+import { Table, Tag, Avatar, Button, Tabs, TableColumnsType } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import CustomButton from '@/app/components/Button';
+import { gql } from '@apollo/client';
+import { useQuery} from '@apollo/client/react';
+import { useState, useEffect } from 'react';
 
-// --- Types ---
-interface TeamMember {
-  key: string;
-  name: string;
-  designation: string;
-  status: 'Active' | 'In Active';
-  mobile: string;
-  avatar: string;
-}
 
-// --- Mock Data ---
-const teamData: TeamMember[] = [
-  {
-    key: '1',
-    name: 'Kintu Musa',
-    designation: 'Project Manager',
-    status: 'Active',
-    mobile: '0702000456',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kintu',
-  },
-  {
-    key: '2',
-    name: 'Otim Simon',
-    designation: 'Architect',
-    status: 'Active',
-    mobile: '0704460456',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Simon',
-  },
-  {
-    key: '3',
-    name: 'Ding Tom',
-    designation: 'City Planner',
-    status: 'In Active',
-    mobile: '0704460456',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom',
-  },
-];
+
+
+export const GET_SITE_TEAM_MEMBERS = gql`
+  query GetSiteTeamMembers($siteId: ID!) {
+    getSiteTeamMembers(siteId: $siteId) {
+      id
+      siteId
+      userId
+      user {
+        id
+        firstName
+        lastName
+      }
+      role
+      status
+      joinedAt
+      createdAt
+    }
+  }
+`
 
 export default function TeamMembersPage() {
 
+
+  const {data} = useQuery<any>(GET_SITE_TEAM_MEMBERS);
+  const [members,setMembers] = useState<any>([])
+
+  useEffect(()=>{
+    if(data && data.members){
+       setMembers(data.members)
+    }
+  },[data])
+
+
   // Ant Design Table Columns
-  const columns = [
+  const columns: TableColumnsType<TeamMember> = [
     {
       title: 'Avatar',
       dataIndex: 'avatar',
       key: 'avatar',
-      render: (src: string) => <Avatar src={src} size={45} />,
+      render: (data) => {
+        return (
+          <div className='w-60 h-60 rouded-full bg-black text-white text-center'>
+            {data.user.firstName[0]}{data.user.lastName[0]  }
+          </div>
+        );
+      },
     },
     {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string) => <span className="font-bold text-[#1e293b] text-base">{text}</span>,
+      title: 'First Name',
+      dataIndex: 'firstName',
+      key: 'firstName',
+    },
+    {
+      title: 'First Name',
+      dataIndex: 'firstName',
+      key: 'firstName',
     },
     {
       title: 'Designation',
-      dataIndex: 'designation',
-      key: 'designation',
-      render: (text: string) => <span className="font-semibold text-gray-700">{text}</span>,
+      dataIndex: 'role',
+      key: 'role',
+      render: (data) => <span className="font-semibold text-gray-700">{data.role}</span>,
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
+      render: (data) => (
         <Tag 
-          color={status === 'Active' ? '#00D06A' : '#FF1919'} 
+          color={data.status === 'Active' ? '#00D06A' : '#FF1919'} 
           className="rounded-full px-6 py-1 border-none font-bold text-white text-xs"
         >
-          {status}
+          {data.status}
         </Tag>
       ),
     },
@@ -82,7 +90,7 @@ export default function TeamMembersPage() {
       title: 'Mobile',
       dataIndex: 'mobile',
       key: 'mobile',
-      render: (text: string) => <span className="font-bold text-[#1e293b]">{text}</span>,
+      render: (text: string) => <span className="font-bold text-[#1e293b]">TODO FIX LATER</span>,
     },
     {
       title: 'Actions',
@@ -96,7 +104,7 @@ export default function TeamMembersPage() {
     <div className="bg-white rounded-lg">
       <Table 
         columns={columns} 
-        dataSource={teamData} 
+        dataSource={members} 
         pagination={false}
         className="custom-table"
       />

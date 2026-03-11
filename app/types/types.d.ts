@@ -1,6 +1,7 @@
 
 interface User {
     _id:string
+    id:string
     firstName:string
     lastName:string
     email:string
@@ -17,4 +18,15 @@ type Site = {
   progress?: number;
   notificationCount?: number;
 };
+
+interface TeamMember {
+  id:string
+  userId:string
+  user:User
+  role:string
+  status:string
+  joinedAt:string
+  createdAt:string
+}
+   
 
