@@ -5,13 +5,15 @@ import { Table, Tag, Avatar, Button, Tabs, TableColumnsType } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import CustomButton from '@/app/components/Button';
 import { gql } from '@apollo/client';
-import { useQuery} from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { useState, useEffect } from 'react';
-
-
-
+import InviteModal from "@/app/components/InviteModal" // Ensure this path is correct
+import { useParams } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
 
 export const GET_SITE_TEAM_MEMBERS = gql`
+
   query GetSiteTeamMembers($siteId: ID!) {
     getSiteTeamMembers(siteId: $siteId) {
       id
@@ -30,11 +32,28 @@ export const GET_SITE_TEAM_MEMBERS = gql`
   }
 `
 
+export const INVITE_TEAM_MEMBER = gql`
+  mutation InviteTeamMember($siteId: ID!, $invitedByUserId: ID!, $invitedMobileNumber: String!) {
+    inviteTeamMember(siteId: $siteId, invitedByUserId: $invitedByUserId, invitedMobileNumber: $invitedMobileNumber) {
+      success
+      message
+    }
+  }
+`
+
 export default function TeamMembersPage() {
-
-
+  const {user} = useSelector((state: RootState) => state.authSlice)
   const {data} = useQuery<any>(GET_SITE_TEAM_MEMBERS);
   const [members,setMembers] = useState<any>([])
+  const params = useParams();
+  const siteId = params.id;
+  const userId = user?._id
+
+  const [inviteMember, { loading: mutationLoading , data: inviteData,error: inviteError}] = useMutation(INVITE_TEAM_MEMBER);
+
+  // --- ADDED ONLY THESE TWO STATES ---
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   useEffect(()=>{
     if(data && data.members){
@@ -42,9 +61,39 @@ export default function TeamMembersPage() {
     }
   },[data])
 
+  useEffect(()=>{
+    if(inviteData){
+      // Handle successful invite
+      setInviteLoading(false);
+      setIsInviteModalOpen(false);
+      console.log("Invite successful:", inviteData);
 
-  // Ant Design Table Columns
-  const columns: TableColumnsType<TeamMember> = [
+    }
+    if(inviteError){
+      // Handle invite error
+      setInviteLoading(false);
+      setIsInviteModalOpen(false)
+      console.log("Invite error:", inviteError);
+    }
+  },[inviteData, inviteError])
+
+
+  // --- ADDED ONLY THIS HANDLER ---
+  const handleInvite = (phone: string) => {
+    setInviteLoading(true);
+    // Add logic here later
+    inviteMember({
+      variables: {
+        siteId,
+        invitedByUserId: userId,
+        invitedMobileNumber: phone,
+      }
+    })
+    
+  };
+
+  // Ant Design Table Columns (UNTOUCHED)
+  const columns: TableColumnsType<any> = [
     {
       title: 'Avatar',
       dataIndex: 'avatar',
@@ -63,9 +112,9 @@ export default function TeamMembersPage() {
       key: 'firstName',
     },
     {
-      title: 'First Name',
-      dataIndex: 'firstName',
-      key: 'firstName',
+      title: 'Last Name',
+      dataIndex: 'lastName',
+      key: 'lastName',
     },
     {
       title: 'Designation',
@@ -99,7 +148,7 @@ export default function TeamMembersPage() {
     },
   ];
 
-  // The Table Component shared by both tabs
+  // The Table Component shared by both tabs (UNTOUCHED)
   const TeamTable = () => (
     <div className="bg-white rounded-lg">
       <Table 
@@ -111,7 +160,7 @@ export default function TeamMembersPage() {
     </div>
   );
 
-  // Tab Items Configuration
+  // Tab Items Configuration (UNTOUCHED)
   const tabItems = [
     {
       key: '1',
@@ -132,7 +181,11 @@ export default function TeamMembersPage() {
         <h1 className="text-4xl font-bold text-black">Team Members</h1>
         
         <div className="flex gap-4">
-            <CustomButton text="Invite Team Member" className="bg-[#2D2D2D] text-white" />
+            <CustomButton 
+              text="Invite Team Member" 
+              className="bg-[#2D2D2D] text-white" 
+              onClick={() => setIsInviteModalOpen(true)} // ONLY ADDED THIS
+            />
             <CustomButton text="Add New Support Member" className="bg-[#2D2D2D] text-white" />
         </div>
       </div>
@@ -142,6 +195,14 @@ export default function TeamMembersPage() {
         defaultActiveKey="1" 
         items={tabItems} 
         className="custom-tabs"
+      />
+
+      {/* --- ADDED THE MODAL HERE --- */}
+      <InviteModal 
+        open={isInviteModalOpen} 
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvite={handleInvite}
+        loading={inviteLoading}
       />
 
       <style jsx global>{`

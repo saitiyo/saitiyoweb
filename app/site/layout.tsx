@@ -1,5 +1,5 @@
 "use client"
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   UserOutlined,
@@ -12,6 +12,8 @@ import { Layout, Menu, theme, Avatar, Badge } from 'antd';
 import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck, Briefcase, FileText } from 'lucide-react';
 import { MenuItemType } from 'antd/es/menu/interface';
 import { useParams } from 'next/navigation';
+import { _getUserByToken } from '@/redux/actions/auth.actions';
+import { useAppDispatch } from '@/redux/hooks';
 
 
 const { Header, Content, Sider } = Layout;
@@ -31,11 +33,36 @@ const menuRoutes: { [key: string]: string } = {
 };
 
 
+
+
 const App: React.FC<React.PropsWithChildren> = ({ children }) => {
   const router = useRouter();
   const params = useParams();
+  const dispatch = useAppDispatch();
 
   const siteId = params.id as string; // Replace with actual site ID as needed
+
+
+
+  useEffect(() => {
+   const token = localStorage.getItem("authToken")
+
+
+   if(!token){
+      //completely logout
+      localStorage.removeItem("sessionId")
+      router.replace("/")
+      return
+    }
+
+    //get user by authtoken
+    dispatch(_getUserByToken({token}))
+
+
+   }, [])
+
+
+
 
   
 const items:MenuItemType[] = [
