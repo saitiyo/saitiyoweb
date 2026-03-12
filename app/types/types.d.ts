@@ -28,5 +28,13 @@ interface TeamMember {
   joinedAt:string
   createdAt:string
 }
+
+interface InviteResponse {
+  inviteTeamMember: {
+    success: boolean;
+    message: string;
+    __typename?: string;
+  };
+}
    
 

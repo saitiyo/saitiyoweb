@@ -11,6 +11,7 @@ import InviteModal from "@/app/components/InviteModal" // Ensure this path is co
 import { useParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
+import CustomToast from '@/app/components/CustomToast/CustomToastify';
 
 export const GET_SITE_TEAM_MEMBERS = gql`
 
@@ -49,7 +50,7 @@ export default function TeamMembersPage() {
   const siteId = params.id;
   const userId = user?._id
 
-  const [inviteMember, { loading: mutationLoading , data: inviteData,error: inviteError}] = useMutation(INVITE_TEAM_MEMBER);
+  const [inviteMember, { loading: mutationLoading , data: inviteData,error: inviteError}] = useMutation<InviteResponse>(INVITE_TEAM_MEMBER);
 
   // --- ADDED ONLY THESE TWO STATES ---
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -66,14 +67,16 @@ export default function TeamMembersPage() {
       // Handle successful invite
       setInviteLoading(false);
       setIsInviteModalOpen(false);
-      console.log("Invite successful:", inviteData);
+
+   
+      
+      console.log("Invite Response:", inviteData);
 
     }
     if(inviteError){
       // Handle invite error
       setInviteLoading(false);
       setIsInviteModalOpen(false)
-      console.log("Invite error:", inviteError);
     }
   },[inviteData, inviteError])
 
@@ -179,6 +182,13 @@ export default function TeamMembersPage() {
       {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <h1 className="text-4xl font-bold text-black">Team Members</h1>
+
+         {inviteData && <CustomToast
+        message={inviteData.inviteTeamMember.message}
+        show={true}
+        isSuccess={inviteData.inviteTeamMember.success}
+        isError={!inviteData.inviteTeamMember.success}
+      />}
         
         <div className="flex gap-4">
             <CustomButton 
