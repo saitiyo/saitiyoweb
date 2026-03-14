@@ -13,6 +13,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "antd": "^6.3.0",
     "axios": "^1.13.6",
+    "formik": "^2.4.9",
     "graphql": "^16.13.1",
     "graphql-ws": "^6.0.7",
     "lucide-react": "^0.575.0",
@@ -21,7 +22,8 @@
     "react-dom": "19.2.3",
     "react-qr-code": "^2.0.18",
     "react-redux": "^9.2.0",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "yup": "^1.7.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

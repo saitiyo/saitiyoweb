@@ -67,11 +67,6 @@ export default function TeamMembersPage() {
       // Handle successful invite
       setInviteLoading(false);
       setIsInviteModalOpen(false);
-
-   
-      
-      console.log("Invite Response:", inviteData);
-
     }
     if(inviteError){
       // Handle invite error
