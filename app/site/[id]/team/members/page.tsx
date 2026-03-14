@@ -55,6 +55,7 @@ export default function TeamMembersPage() {
   // --- ADDED ONLY THESE TWO STATES ---
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [toastConfig, setToastConfig] = useState({ show: false, message: '', isSuccess: false });
 
   useEffect(()=>{
     if(data && data.members){
@@ -62,18 +63,36 @@ export default function TeamMembersPage() {
     }
   },[data])
 
-  useEffect(()=>{
-    if(inviteData){
-      // Handle successful invite
-      setInviteLoading(false);
-      setIsInviteModalOpen(false);
-    }
-    if(inviteError){
-      // Handle invite error
-      setInviteLoading(false);
-      setIsInviteModalOpen(false)
-    }
-  },[inviteData, inviteError])
+  useEffect(() => {
+  if (inviteData) {
+    setInviteLoading(false);
+    setIsInviteModalOpen(false);
+    
+    // Trigger the toast state
+    setToastConfig({
+      show: true,
+      message: inviteData.inviteTeamMember.message,
+      isSuccess: inviteData.inviteTeamMember.success
+    });
+
+    setInviteLoading(false);
+    setIsInviteModalOpen(false);
+    // Auto-hide toast after 3-5 seconds
+    setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 4000);
+  }
+  
+  if (inviteError) {
+    setInviteLoading(false);
+    setToastConfig({
+      show: true,
+      message: inviteError.message || "An error occurred",
+      isSuccess: false
+    });
+    setInviteLoading(false);
+    setIsInviteModalOpen(false);
+    setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 4000);
+  }
+}, [inviteData, inviteError]);
 
 
   // --- ADDED ONLY THIS HANDLER ---
@@ -178,12 +197,13 @@ export default function TeamMembersPage() {
       <div className="flex justify-between items-start mb-6">
         <h1 className="text-4xl font-bold text-black">Team Members</h1>
 
-         {inviteData && <CustomToast
-        message={inviteData.inviteTeamMember.message}
-        show={true}
-        isSuccess={inviteData.inviteTeamMember.success}
-        isError={!inviteData.inviteTeamMember.success}
-      />}
+         {/* Always render or conditionally render based on toastConfig.show */}
+        <CustomToast
+          message={toastConfig.message}
+          show={toastConfig.show}
+          isSuccess={toastConfig.isSuccess}
+          isError={!toastConfig.isSuccess}
+        />
         
         <div className="flex gap-4">
             <CustomButton 
