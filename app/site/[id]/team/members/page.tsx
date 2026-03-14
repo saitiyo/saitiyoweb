@@ -14,7 +14,6 @@ import { RootState } from '@/redux/store';
 import CustomToast from '@/app/components/CustomToast/CustomToastify';
 
 export const GET_SITE_TEAM_MEMBERS = gql`
-
   query GetSiteTeamMembers($siteId: ID!) {
     getSiteTeamMembers(siteId: $siteId) {
       id
