@@ -7,6 +7,17 @@ import membersonsite from '../../../assets/membersonsite.png';
 import { Tabs } from 'antd';
 import MemberListItem from '@/app/components/MemberListItem';
 import { Member } from "@/app/types/member";
+import { gql } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+
+const GET_SITE_TEAM_MEMBERS_COUNT = gql`
+  query GetSiteTeamMembersCount($siteId: ID!) {
+    getSiteTeamMembersCount(siteId: $siteId)
+  }
+`;
+
 
 const mockMembers: Member[] = Array(5).fill({
   id: '1',
@@ -18,6 +29,19 @@ const mockMembers: Member[] = Array(5).fill({
 });
 
 const TeamPage = () => {
+
+    const {data} = useQuery<any>(GET_SITE_TEAM_MEMBERS_COUNT);
+    const [membersCount,setMembersCount] = useState<any>([])
+    const params = useParams();
+    const siteId = params.id;
+
+    useEffect(()=>{
+        if(data && data.membersCount){
+           setMembersCount(data.membersCount)
+        }
+      },[data])
+    
+  console.log("Members count: ", membersCount);
 
     const items = [
     {
@@ -44,7 +68,7 @@ const TeamPage = () => {
   return (
     <div>
   <div className="flex justify-between">
-    <ActiveContractsCard title="Active team members" value={24} image={
+    <ActiveContractsCard title="Team members" value={membersCount.length} image={
           <Image
             src={activemembers}
             width={64}
