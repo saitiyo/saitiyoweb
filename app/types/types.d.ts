@@ -36,5 +36,22 @@ interface InviteResponse {
     __typename?: string;
   };
 }
+
+type PlanType =
+  | 'FLOOR_PLAN' | 'ELEVATION' | 'SECTION'
+  | 'SITE_LAYOUT' | 'ELECTRICAL' | 'PLUMBING'
+  | 'STRUCTURAL' | 'OTHER';
+
+
+interface SitePlan {
+  _id: string;
+  title: string;
+  planType: PlanType;
+  fileUrl: string;
+  fileSize?: number;
+  description?: string;
+  uploadedBy: string;
+  createdAt: string;
+}
    
 

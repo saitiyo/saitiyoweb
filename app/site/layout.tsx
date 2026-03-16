@@ -9,7 +9,7 @@ import {
   DownOutlined,
 } from '@ant-design/icons';
 import { Layout, Menu, theme, Avatar, Badge } from 'antd';
-import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck, Briefcase, FileText } from 'lucide-react';
+import { LayoutDashboard,Users, Webcam, Toolbox, BookOpenText, FolderArchive, FileCheck, Briefcase, FileText,Currency } from 'lucide-react';
 import { MenuItemType } from 'antd/es/menu/interface';
 import { useParams } from 'next/navigation';
 import { _getUserByToken } from '@/redux/actions/auth.actions';
@@ -86,36 +86,42 @@ const items:MenuItemType[] = [
   },
   {
     key: '4',
+    icon: <Currency size={18} />,
+    label: 'Budget',
+     onClick: () => router.push(`/site/${siteId}/budget`),
+  },
+  {
+    key: '5',
     icon: <Toolbox size={18} />,
     label: 'Equipment',
      onClick: () => router.push(`/site/${siteId}/equipment`),
   },
   {
-    key: '5',
+    key: '6',
     icon: <Briefcase size={18} />,
     label: 'Inventory',
      onClick: () => router.push(`/site/${siteId}/inventory`),
   },
   {
-    key: '6',
+    key: '7',
     icon: <BookOpenText size={18} />,
     label: 'Project Documentation',
      onClick: () => router.push(`/site/${siteId}/projectdocumentation`),
   },
   {
-    key: '7',
+    key: '8',
     icon: <FolderArchive size={18} />,
     label: 'Archives',
      onClick: () => router.push(`/site/${siteId}/archives`),
   },
   {
-    key: '8',
+    key: '9',
     icon: <FileText size={18} />,
     label: 'Site Plans',
      onClick: () => router.push(`/site/${siteId}/siteplans`),
   },
   {
-    key: '9',
+    key: '10',
     icon: <FileCheck size={18} />,
     label: 'Task Board',
      onClick: () => router.push(`/site/${siteId}/taskboard`),
