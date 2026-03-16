@@ -32,8 +32,8 @@ const TeamPage = () => {
 
     const {data} = useQuery<any>(GET_SITE_TEAM_MEMBERS_COUNT);
     const [membersCount,setMembersCount] = useState<any>([])
-    const params = useParams();
-    const siteId = params.id;
+    // const params = useParams();
+    // const siteId = params.id;
 
     useEffect(()=>{
         if(data && data.membersCount){

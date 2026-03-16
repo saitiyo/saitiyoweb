@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import CustomToast from '@/app/components/CustomToast/CustomToastify';
+import { useRouter } from 'next/navigation';
 
 export const GET_SITE_TEAM_MEMBERS = gql`
   query GetSiteTeamMembers($siteId: ID!) {
@@ -32,6 +33,27 @@ export const GET_SITE_TEAM_MEMBERS = gql`
   }
 `
 
+export const GET_SUPPORT_TEAM_MEMBERS = gql`
+
+query GetSupportTeamMembers($siteId: ID!, $status: SupportMemberStatus) {
+  getSupportTeamMembers(siteId: $siteId, status: $status) {
+    _id
+    createdAt
+    email
+    firstName
+    fullName
+    gender
+    lastName
+    mobileNumber
+    siteId
+    status
+    updatedAt
+  }
+}
+
+`
+
+
 export const INVITE_TEAM_MEMBER = gql`
   mutation InviteTeamMember($siteId: ID!, $invitedByUserId: ID!, $invitedMobileNumber: String!) {
     inviteTeamMember(siteId: $siteId, invitedByUserId: $invitedByUserId, invitedMobileNumber: $invitedMobileNumber) {
@@ -44,7 +66,10 @@ export const INVITE_TEAM_MEMBER = gql`
 export default function TeamMembersPage() {
   const {user} = useSelector((state: RootState) => state.authSlice)
   const {data} = useQuery<any>(GET_SITE_TEAM_MEMBERS);
+  const {data: supportData} = useQuery<any>(GET_SUPPORT_TEAM_MEMBERS);
   const [members,setMembers] = useState<any>([])
+  const [supportMembers, setSupportMembers] = useState<any>([])
+  const router = useRouter(); // Initialize router
   const params = useParams();
   const siteId = params.id;
   const userId = user?._id
@@ -61,6 +86,12 @@ export default function TeamMembersPage() {
        setMembers(data.members)
     }
   },[data])
+
+  useEffect(()=>{
+    if(supportData && supportData.supportMembers){
+       setSupportMembers(supportData.supportMembers)
+    }
+  },[supportData])
 
   useEffect(() => {
   if (inviteData) {
@@ -164,12 +195,25 @@ export default function TeamMembersPage() {
     },
   ];
 
-  // The Table Component shared by both tabs (UNTOUCHED)
+  // The Table Component for Team Members
   const TeamTable = () => (
     <div className="bg-white rounded-lg">
       <Table 
         columns={columns} 
         dataSource={members} 
+        pagination={false}
+        className="custom-table"
+      />
+    </div>
+  );
+
+ // support members table
+ 
+ const SupportTeamTable = () => (
+    <div className="bg-white rounded-lg">
+      <Table 
+        columns={columns} 
+        dataSource={supportMembers} 
         pagination={false}
         className="custom-table"
       />
@@ -186,7 +230,7 @@ export default function TeamMembersPage() {
     {
       key: '2',
       label: 'Support Team Members',
-      children: <TeamTable />,
+      children: <SupportTeamTable />,
     },
   ];
 
@@ -210,7 +254,7 @@ export default function TeamMembersPage() {
               className="bg-[#2D2D2D] text-white" 
               onClick={() => setIsInviteModalOpen(true)} // ONLY ADDED THIS
             />
-            <CustomButton text="Add New Support Member" className="bg-[#2D2D2D] text-white" />
+            <CustomButton text="Add New Support Member" className="bg-[#2D2D2D] text-white" onClick={() => router.push(`/site/${siteId}/team/members/addsupportmember`)}/>
         </div>
       </div>
 
