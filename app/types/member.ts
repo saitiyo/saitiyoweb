@@ -6,3 +6,10 @@ export interface Member {
   time: string;
   avatar: string;
 }
+
+export interface AddSupportMemberResponse {
+  addSupportTeamMember: {
+    _id: string;
+    // add other fields if you added them to the gql string
+  };
+}

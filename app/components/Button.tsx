@@ -8,6 +8,7 @@ type Props = Omit<AntdButtonProps, 'children'> & {
   className?: string
   style?: CSSProperties
   link?: string
+  htmlType?: "submit" | "button" | "reset"
 }
 
 export default function CustomButton({
@@ -15,6 +16,7 @@ export default function CustomButton({
   className = '',
   style,
   link,
+  htmlType = "button", // Default to button
   ...props
 }: Props) {
   const mergedStyle: CSSProperties = {
@@ -29,6 +31,7 @@ export default function CustomButton({
       {...props}
       style={mergedStyle}
       className={`rounded px-4 py-2 ${className}`}
+      htmlType={htmlType} // Pass the htmlType to AntdButton
     >
       {text}
     </AntdButton>
