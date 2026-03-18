@@ -210,11 +210,30 @@ export default function TeamMembersPage() {
   ];
 
   const TeamTable = () => (
-    <Table columns={columns} dataSource={members} pagination={false} className="custom-table" rowKey="id" />
+    <Table 
+    columns={columns} 
+    dataSource={members} 
+    pagination={{
+    pageSize: 10,
+    position: ['bottomCenter'],
+    // If this is missing or false, pagination disappears
+    hideOnSinglePage: true, 
+  }}
+    className="custom-table" 
+    rowKey="id" />
   );
 
   const SupportTeamTable = () => (
-    <Table columns={supportColumns} dataSource={supportMembers} pagination={false} className="custom-table" rowKey="_id" />
+    <Table 
+    columns={supportColumns} 
+    dataSource={supportMembers} 
+    pagination={{
+    pageSize: 10,
+    position: ['bottomCenter'],
+    // If this is missing or false, pagination disappears
+    hideOnSinglePage: true, 
+  }}
+    className="custom-table" rowKey="_id" />
   );
 
   const tabItems = [
