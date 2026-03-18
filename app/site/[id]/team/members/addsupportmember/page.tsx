@@ -13,6 +13,7 @@ import { useMutation } from '@apollo/client/react';
 import { AddSupportMemberResponse } from '@/app/types/member';
 import { useParams } from 'next/navigation';
 import CustomToast from '@/app/components/CustomToast/CustomToastify';
+import { GET_SUPPORT_TEAM_MEMBERS } from '../page';
 
 const ADD_SUPPORT_TEAM_MEMBER = gql`
   mutation AddSupportTeamMember(
@@ -52,7 +53,22 @@ export default function AddSupportMemberPage() {
   const params = useParams();
   const siteId = params.id;
 
-  const [addSupportMember, { loading, error: addSupportMemberError, data: addSupportMemberData }] = useMutation<AddSupportMemberResponse>(ADD_SUPPORT_TEAM_MEMBER);
+  const [addSupportMember, { loading, error: addSupportMemberError, data: addSupportMemberData }] = useMutation<AddSupportMemberResponse>(ADD_SUPPORT_TEAM_MEMBER,{
+    // 1. Specify the query AND the variables it needs to match the list page
+    refetchQueries: [
+      {
+        query: GET_SUPPORT_TEAM_MEMBERS,
+        variables: { 
+          siteId: siteId,
+          limit: 10,  // Match the pageSize in your list page
+          offset: 0   // Usually you want to refresh the first page to see the new member
+        },
+      },
+    ],
+    // 2. This ensures the 'await' in handleSubmit waits for the data to actually refresh
+    awaitRefetchQueries: true, 
+  }
+   );
   const router = useRouter();
   const [toastConfig, setToastConfig] = useState({ show: false, message: '', isSuccess: false });
 
@@ -65,9 +81,32 @@ export default function AddSupportMemberPage() {
     gender: '', 
   };
 
+  useEffect(()=>{
+
+    // Check if the specific mutation key exists in the response
+    if (addSupportMemberData && addSupportMemberData.addSupportTeamMember) {
+      setToastConfig({
+        show: true,
+        message: "Member added successfully", 
+        isSuccess: true
+      });
+      
+      // Navigate back after a short delay
+      setTimeout(() => router.back(), 4000);
+    }
+    if(addSupportMemberError){
+      setToastConfig({
+        show: true,
+        message: "Failed to add member",
+        isSuccess: false
+      });
+    }
+
+  },[addSupportMemberData,addSupportMemberError])
+
  const handleSubmit = async (values: typeof initialValues, { setSubmitting }: any) => {
   try {
-    const { data } = await addSupportMember({
+  await addSupportMember({
       variables: {
         siteId: siteId, 
         firstName: values.firstName,
@@ -78,23 +117,6 @@ export default function AddSupportMemberPage() {
       }
     });
 
-    // Check if the specific mutation key exists in the response
-    if (data && data.addSupportTeamMember) {
-      setToastConfig({
-        show: true,
-        message: "Member added successfully", 
-        isSuccess: true
-      });
-      
-      // Navigate back after a short delay
-      setTimeout(() => router.back(), 2000);
-    } else {
-      setToastConfig({
-        show: true,
-        message: "Failed to add member: No data returned",
-        isSuccess: false
-      });
-    }
   } catch (error: any) {
     // This will catch GraphQL errors like "Email already exists"
     setToastConfig({
