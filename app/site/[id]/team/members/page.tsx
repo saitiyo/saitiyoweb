@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { Table, Tag, Avatar, Button, Tabs, TableColumnsType } from 'antd';
-import { MoreOutlined } from '@ant-design/icons';
+import { Table, Tag, Avatar, Button, Tabs, TableColumnsType, Dropdown, Popconfirm } from 'antd';
+import { DeleteOutlined, MoreOutlined } from '@ant-design/icons';
 import CustomButton from '@/app/components/Button';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
@@ -60,6 +60,14 @@ export const INVITE_TEAM_MEMBER = gql`
   }
 `;
 
+export const DELETE_SUPPORT_TEAM_MEMBER = gql`
+
+  mutation DeleteSupportTeamMember($deleteSupportTeamMemberId: ID!) {
+  deleteSupportTeamMember(id: $deleteSupportTeamMemberId)
+}
+
+`
+
 export default function TeamMembersPage() {
   const { user } = useSelector((state: RootState) => state.authSlice);
   const router = useRouter();
@@ -77,6 +85,17 @@ export default function TeamMembersPage() {
     variables: { siteId },
     skip: !siteId,
   });
+
+  const [deleteMember] = useMutation(DELETE_SUPPORT_TEAM_MEMBER, {
+  // This ensures the list updates immediately after deletion
+  refetchQueries: [{ query: GET_SUPPORT_TEAM_MEMBERS, variables: { siteId } }],
+  onCompleted: () => {
+    setToastConfig({ show: true, message: "Member deleted successfully", isSuccess: true });
+  },
+  onError: (error) => {
+    setToastConfig({ show: true, message: error.message, isSuccess: false });
+  }
+});
 
   const [members, setMembers] = useState<any[]>([]);
   const [supportMembers, setSupportMembers] = useState<any[]>([]);
@@ -203,10 +222,46 @@ export default function TeamMembersPage() {
       ),
     },
     {
-      title: 'Actions',
-      key: 'actions',
-      render: () => <Button type="text" icon={<MoreOutlined />} />,
-    },
+  title: 'Actions',
+  key: 'actions',
+  align: 'right',
+  render: (record) => {
+    return (
+      <Dropdown
+        trigger={['click']}
+        placement="bottomRight"
+        menu={{
+          items: [
+            {
+              key: 'delete',
+              danger: true,
+              icon: <DeleteOutlined />,
+              label: (
+                <Popconfirm
+                  title="Delete member?"
+                  description="Are you sure you want to remove this member?"
+                  onConfirm={() => deleteMember({ 
+                    variables: { deleteSupportTeamMemberId: record._id } 
+                  })}
+                  okText="Yes"
+                  cancelText="No"
+                  okButtonProps={{ danger: true }}
+                >
+                  <span style={{ display: 'block', width: '100%' }}>Delete Member</span>
+                </Popconfirm>
+              ),
+            },
+          ],
+        }}
+      >
+        <Button 
+          type="text" 
+          icon={<MoreOutlined style={{ fontSize: '18px' }} />} 
+        />
+      </Dropdown>
+    );
+  },
+},
   ];
 
   const TeamTable = () => (
