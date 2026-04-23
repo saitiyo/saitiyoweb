@@ -1,6 +1,8 @@
 "use client";
 import ActiveContractsCard from "@/app/components/DashboardCard";
 import Image from "next/image";
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import activemembers from '../../../assets/activemembers.png';
 import supportteam from '../../../assets/supportteam.png';
 import membersonsite from '../../../assets/membersonsite.png';
@@ -32,8 +34,8 @@ const TeamPage = () => {
 
     const {data} = useQuery<any>(GET_SITE_TEAM_MEMBERS_COUNT);
     const [membersCount,setMembersCount] = useState<any>([])
-    // const params = useParams();
-    // const siteId = params.id;
+    const params = useParams();
+    const siteId = params?.id;
 
     useEffect(()=>{
         if(data && data.membersCount){
@@ -67,37 +69,56 @@ const TeamPage = () => {
 
   return (
     <div>
-  <div className="flex justify-between">
-    <ActiveContractsCard title="Team members" value={membersCount.length} image={
-          <Image
-            src={activemembers}
-            width={64}
-            height={64}
-            className="w-16 h-16"
-            alt=""
-          />
-        }/>
-    <ActiveContractsCard title="Support team members" value={50} image={
-          <Image
-            src={supportteam}
-            width={64}
-            height={64}
-            className="w-16 h-16"
-            alt=""
-          />
-        }/>
-    <ActiveContractsCard title="Members currently on site" value={12} image={
-          <Image
-            src={membersonsite}
-            width={64}
-            height={64}
-            className="w-16 h-16"
-            alt=""
-          />
-        }/>
-  </div>
-  <div>
-            <div className="min-h-screen bg-white p-6 md:p-12">
+      <div className="flex flex-col gap-6 mb-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <ActiveContractsCard title="Team members" value={membersCount.length} image={
+                <Image
+                  src={activemembers}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16"
+                  alt=""
+                />
+              }/>
+          <ActiveContractsCard title="Support team members" value={50} image={
+                <Image
+                  src={supportteam}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16"
+                  alt=""
+                />
+              }/>
+          <ActiveContractsCard title="Members currently on site" value={12} image={
+                <Image
+                  src={membersonsite}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16"
+                  alt=""
+                />
+              }/>
+        </div>
+      </div>
+      <div>
+            <div className="min-h-screen bg-white p-6 md:p-12 rounded-3xl shadow-sm border border-gray-100">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl font-semibold text-black">Team Overview</h1>
+                  <p className="text-sm text-gray-500">View clock-in status and navigate to the full team members page.</p>
+                </div>
+                {siteId ? (
+                  <Link href={`/site/${siteId}/team/members`} className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition duration-200 shadow-sm" style={{ backgroundColor: '#000000', color: '#FFFFFF' }}>
+                    Go to Team Members
+                    <ChevronRight size={18} />
+                  </Link>
+                ) : (
+                  <button className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold opacity-60 cursor-not-allowed shadow-sm" style={{ backgroundColor: '#000000', color: '#FFFFFF' }} disabled>
+                    Go to Team Members
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+              </div>
             <div className="max-w-6xl mx-auto">
                 <Tabs
                 defaultActiveKey="1"
