@@ -16,7 +16,7 @@ import { GET_MY_SITES } from "../page";
 const CREATE_SITE_MUTATION = gql`
   mutation CreateSite($userId: ID!, $name: String!, $endDate: String!, $logoUrl: String) {
   createSite(userId: $userId, name: $name, endDate: $endDate, logoUrl: $logoUrl) {
-    id
+    _id
     name
     logoUrl
     status
