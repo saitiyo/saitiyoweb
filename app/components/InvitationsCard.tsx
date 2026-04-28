@@ -11,13 +11,13 @@ import {
 
 interface Props {
   invitation: Invitation;
-  onAccept: (id: string) => void;
-  onDecline: (id: string) => void;
+  onAccept?: (id: string) => void;
+  onDecline?: (id: string) => void;
   loading?: boolean;
 }
 
 export default function InvitationCard({ invitation, onAccept, onDecline, loading }: Props) {
-  const isPending = invitation.status === 'Pending';
+  const isPending = invitation.status?.toLowerCase() === 'pending' || invitation.status === 'Pending';
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-6 mb-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm hover:shadow-md transition-shadow">
@@ -53,7 +53,7 @@ export default function InvitationCard({ invitation, onAccept, onDecline, loadin
           <>
             {/* Decline Button: Outlined Black/White */}
             <Button 
-              onClick={() => onDecline(invitation.id)}
+              onClick={() => onDecline?.(invitation.id)}
               className="!border-gray-300 !text-black hover:!border-black hover:!text-black h-11 px-6 font-bold rounded-md shadow-none transition-colors"
               disabled={loading}
             >
@@ -63,7 +63,7 @@ export default function InvitationCard({ invitation, onAccept, onDecline, loadin
             {/* Accept Button: Solid Black with White Text & Icon */}
             <Button 
               type="primary" 
-              onClick={() => onAccept(invitation.id)}
+              onClick={() => onAccept?.(invitation.id)}
               loading={loading}
               className="!bg-black !border-black !text-white hover:!bg-gray-800 h-11 px-8 font-bold rounded-md shadow-none flex items-center justify-center gap-2"
             >

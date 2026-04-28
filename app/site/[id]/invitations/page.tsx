@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, Empty } from 'antd';
 import InvitationCard from '@/app/components/InvitationsCard';
 import { gql } from '@apollo/client';
@@ -8,6 +8,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { useAppSelector } from '@/redux/hooks';
 import { RootState } from '@/redux/store';
 import { toast } from 'react-toastify';
+import { useParams } from 'next/navigation';
 
 export const GET_MY_PENDING_INVITATIONS = gql`
  query GetMyPendingInvitations($userId: ID!) {
@@ -38,10 +39,9 @@ export const GET_MY_PENDING_INVITATIONS = gql`
 }
 `;
 
-export const GET_ACCEPTED_INVITATIONS = gql`
-
-  query GetAcceptedInvitations($userId: ID!) {
-  getAcceptedInvitations(userId: $userId) {
+export const GET_MY_ALL_INVITATIONS = gql`
+  query GetSiteInvitations($siteId: ID!) {
+  getSiteInvitations(siteId: $siteId) {
     id
     siteId
     siteName
@@ -68,7 +68,6 @@ export const GET_ACCEPTED_INVITATIONS = gql`
     createdAt
   }
 }
-
 `
 
 export const ACCEPT_INVITATION = gql`
@@ -113,9 +112,32 @@ export const DECLINE_INVITATION = gql`
   }
 `;
 
+type AcceptInvitationResponse = {
+  acceptInvitation: {
+    data: Invitation;
+  };
+};
+
+type AcceptInvitationVars = {
+  invitationId: string;
+  userId?: string;
+};
+
+type DeclineInvitationResponse = {
+  declineInvitation: {
+    id: string;
+    status: string;
+  };
+};
+
+type DeclineInvitationVars = {
+  invitationId: string;
+};
 
 export default function InvitationsPage() {
   const {user} = useAppSelector((state:RootState) => state.authSlice);
+  const params = useParams();
+  const siteId = params.id as string;
 
   console.log("User in invitations page: ", user);
 
@@ -126,40 +148,57 @@ export default function InvitationsPage() {
     skip: !user?._id,
   });
 
-  const {data: acceptedInvitationsData} = useQuery<any>(GET_ACCEPTED_INVITATIONS,{
-    variables:{
-      userId: user?._id
+  const {data: allInvitationsData } = useQuery<any>(GET_MY_ALL_INVITATIONS, {
+    variables: {
+      siteId: siteId
     },
-    skip: !user?._id,
-  }); 
+    skip: !siteId,
+  })
 
-  const [acceptInvitation, { loading: acceptLoading }] = useMutation(ACCEPT_INVITATION);
-  const [declineInvitation, { loading: declineLoading }] = useMutation(DECLINE_INVITATION);
+  const [acceptInvitation, { loading: acceptLoading }] = useMutation<AcceptInvitationResponse, AcceptInvitationVars>(ACCEPT_INVITATION);
+  const [declineInvitation, { loading: declineLoading }] = useMutation<DeclineInvitationResponse, DeclineInvitationVars>(DECLINE_INVITATION);
 
   const [invitations, setInvitations] = useState<any>([])
-  const [acceptedInvitations, setAcceptedInvitations] = useState<any>([])
+  const [siteInvitations, setSiteInvitations] = useState<any>([])
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  useEffect(()=>{
-      if(data && data.getMyPendingInvitations){
-         setInvitations(data.getMyPendingInvitations)
-      }
-    },[data])
+  useEffect(() => {
+    if (data && data.getMyPendingInvitations) {
+      setInvitations((prev: any[]) => {
+        const pending = data.getMyPendingInvitations;
+        const history = prev.filter(
+          (inv: any) =>
+            (inv.status || '').toLowerCase() !== 'pending' &&
+            !pending.some((pendingInv: any) => pendingInv.id === inv.id)
+        );
+        return [...pending, ...history];
+      });
+    }
+  }, [data]);
 
-  useEffect(()=>{
-      if(acceptedInvitationsData && acceptedInvitationsData.getAcceptedInvitations){
-         setAcceptedInvitations(acceptedInvitationsData.getAcceptedInvitations)
-      }
-    },[acceptedInvitationsData])
+  useEffect(() => {
+    if (allInvitationsData && allInvitationsData.getSiteInvitations) {
+      setSiteInvitations(allInvitationsData.getSiteInvitations);
+    }
+  }, [allInvitationsData]);
 
   const handleAccept = async (id: string) => {
     setLoadingId(id);
     try {
-      await acceptInvitation({
+      const response = await acceptInvitation({
         variables: { invitationId: id, userId: user?._id }
       });
+
+      const acceptedInvitation = response?.data?.acceptInvitation?.data;
+      if (acceptedInvitation) {
+        setInvitations((prev: any[]) =>
+          prev.map((inv: any) =>
+            inv.id === id ? { ...inv, ...acceptedInvitation } : inv
+          )
+        );
+      }
+
       toast.success('Invitation accepted successfully!');
-      await refetch();
     } catch (error) {
       console.error('Error accepting invitation:', error);
       toast.error('Failed to accept invitation. Please try again.');
@@ -171,11 +210,18 @@ export default function InvitationsPage() {
   const handleDecline = async (id: string) => {
     setLoadingId(id);
     try {
-      await declineInvitation({
+      const response = await declineInvitation({
         variables: { invitationId: id }
       });
+
+      const declinedStatus = response?.data?.declineInvitation?.status || 'Declined';
+      setInvitations((prev: any[]) =>
+        prev.map((inv: any) =>
+          inv.id === id ? { ...inv, status: declinedStatus } : inv
+        )
+      );
+
       toast.success('Invitation declined successfully!');
-      await refetch();
     } catch (error) {
       console.error('Error declining invitation:', error);
       toast.error('Failed to decline invitation. Please try again.');
@@ -184,14 +230,21 @@ export default function InvitationsPage() {
     }
   };
 
+  const pendingInvitations = invitations.filter((inv: any) =>
+    (inv.status || '').toLowerCase() === 'pending' && inv.siteId === siteId
+  );
+  const historyInvitations = siteInvitations.filter((inv: any) =>
+    (inv.status || '').toLowerCase() !== 'pending'
+  );
+
   const items = [
     {
       key: '1',
-      label: `PENDING (${invitations.length})`,
+      label: `PENDING (${pendingInvitations.length})`,
       children: (
         <div className="pt-6">
-          {invitations.length > 0 ? (
-            invitations.map((inv: Invitation) => (
+          {pendingInvitations.length > 0 ? (
+            pendingInvitations.map((inv: Invitation) => (
               <InvitationCard 
                 key={inv.id} 
                 invitation={inv} 
@@ -209,9 +262,9 @@ export default function InvitationsPage() {
       label: 'HISTORY',
       children: (
         <div className="pt-6">
-          {acceptedInvitations.length > 0 ? (
-            acceptedInvitations.map((inv: Invitation) => (
-              <InvitationCard key={inv.id} invitation={inv} />
+          {historyInvitations.length > 0 ? (
+            historyInvitations.map((inv: Invitation) => (
+              <InvitationCard key={inv.id} invitation={inv}/>
             ))
           ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="NO HISTORY" />}
         </div>

@@ -25,7 +25,7 @@ export default function InviteModal({ open, onClose, onInvite, loading }: Invite
     phone: Yup.string()
       .required('Phone number is required')
       .matches(/^[0-9+]+$/, 'Please enter a valid phone number')
-      .min(10, 'Number is too short'),
+      .min(9, 'Number is too short'),
   });
 
   return (
