@@ -126,7 +126,7 @@ export default function InvitationsPage() {
     skip: !user?._id,
   });
 
-  const {data: acceptedInvitationsData} = useQuery<any>(GET_ACCEPTED_INVITATIONS,{
+  const {data: acceptedInvitationsData, refetch: refetchAcceptedInvitations} = useQuery<any>(GET_ACCEPTED_INVITATIONS,{
     variables:{
       userId: user?._id
     },
@@ -159,7 +159,10 @@ export default function InvitationsPage() {
         variables: { invitationId: id, userId: user?._id }
       });
       toast.success('Invitation accepted successfully!');
-      await refetch();
+      await Promise.all([
+        refetch(),
+        refetchAcceptedInvitations?.(),
+      ]);
     } catch (error) {
       console.error('Error accepting invitation:', error);
       toast.error('Failed to accept invitation. Please try again.');

@@ -111,6 +111,7 @@ export default function TeamMembersPage() {
     }
   }, [data]);
 
+
   useEffect(() => {
     if (supportData && supportData.getSupportTeamMembers) {
       setSupportMembers(supportData.getSupportTeamMembers);
