@@ -1,5 +1,27 @@
 /** @type {import('next').NextConfig} */
+
+const CopyPlugin = require("copy-webpack-plugin");
+const path = require("path");
+
+
 const nextConfig = {
+  webpack: (config) => {
+    config.plugins.push(
+      new CopyPlugin({
+        patterns: [
+          {
+            from: path.join(
+              path.dirname(require.resolve("pdfjs-dist/package.json")),
+              "build",
+              "pdf.worker.min.mjs"
+            ),
+            to: path.join(__dirname, "public"),
+          },
+        ],
+      })
+    );
+    return config;
+  },
   // 1. Add the Image Security Rules
   images: {
     remotePatterns: [
@@ -14,6 +36,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'au.int',
       },
     ],
   },

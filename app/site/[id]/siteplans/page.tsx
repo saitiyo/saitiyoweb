@@ -49,20 +49,6 @@ const PLAN_TYPE_META: Record<PlanType, { label: string; color: string; bg: strin
 
 const ALL_TYPES = Object.keys(PLAN_TYPE_META) as PlanType[];
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-// Replace with real Apollo query results
-const MOCK_PLANS: SitePlan[] = [
-  { _id: '1', title: 'Elevation plan',    planType: 'ELEVATION',   fileUrl: '', fileSize: 2_400_000, uploadedBy: 'J. Omondi',  createdAt: '2025-03-01', description: 'North and south elevation drawings' },
-  { _id: '2', title: 'Ground floor plan', planType: 'FLOOR_PLAN',  fileUrl: '', fileSize: 3_100_000, uploadedBy: 'A. Kamau',   createdAt: '2025-03-03' },
-  { _id: '3', title: 'Roofing plan',      planType: 'STRUCTURAL',  fileUrl: '', fileSize: 1_800_000, uploadedBy: 'M. Wanjiru', createdAt: '2025-03-05' },
-  { _id: '4', title: 'Electrical layout', planType: 'ELECTRICAL',  fileUrl: '', fileSize: 980_000,   uploadedBy: 'P. Njeru',   createdAt: '2025-03-07', description: 'All floors' },
-  { _id: '5', title: 'Plumbing plan',     planType: 'PLUMBING',    fileUrl: '', fileSize: 1_200_000, uploadedBy: 'K. Muss',    createdAt: '2025-03-09' },
-  { _id: '6', title: 'Site layout',       planType: 'SITE_LAYOUT', fileUrl: '', fileSize: 4_500_000, uploadedBy: 'J. Omondi',  createdAt: '2025-03-10', description: 'Full site boundary and access roads' },
-];
-
-
-
-
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SitePlansPage() {
@@ -125,7 +111,7 @@ export default function SitePlansPage() {
 
       <div className="max-w-7xl mx-auto p-6 pb-12">
 
-        {/* ── Header ──────────────────────────────────── */}
+      
         <div className="flex items-center justify-between mb-6 animate-fadeInUp">
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">

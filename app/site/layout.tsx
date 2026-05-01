@@ -16,6 +16,7 @@ import { _getUserByToken } from '@/redux/actions/auth.actions';
 import { useAppDispatch } from '@/redux/hooks';
 
 
+
 const { Header, Content, Sider } = Layout;
 
 
@@ -271,6 +272,7 @@ const items:MenuItemType[] = [
               padding: 10,
             }}
           >
+          
             {children}
           </div>
         </Content>
