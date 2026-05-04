@@ -18,10 +18,7 @@ export const GET_SITE_TEAM_MEMBERS = gql`
   query GetSiteTeamMembers($siteId: ID!) {
     getSiteTeamMembers(siteId: $siteId) {
       id
-      siteId
-      userId
       user {
-        id
         firstName
         lastName
       }
@@ -44,7 +41,6 @@ export const GET_SUPPORT_TEAM_MEMBERS = gql`
       gender
       lastName
       mobileNumber
-      siteId
       status
       updatedAt
     }
@@ -68,6 +64,33 @@ export const DELETE_SUPPORT_TEAM_MEMBER = gql`
 
 `
 
+export const GET_SITE_INVITATIONS = gql`
+  query GetSiteInvitations($siteId: ID!) {
+    getSiteInvitations(siteId: $siteId) {
+      id
+      siteName
+      invitedByUser {
+        firstName
+        lastName
+        mobileNumber
+      }
+      invitedUser
+      invitedUserInfo {
+        firstName
+        lastName
+        mobileNumber
+      }
+      invitedMobileNumber
+      role
+      status
+      message
+      expiresAt
+      acceptedAt
+      createdAt
+    }
+  }
+`;
+
 export default function TeamMembersPage() {
   const { user } = useSelector((state: RootState) => state.authSlice);
   const router = useRouter();
@@ -76,12 +99,17 @@ export default function TeamMembersPage() {
   const userId = user?._id;
 
   // --- FIXED: Added variables to useQuery hooks ---
-  const { data } = useQuery<any>(GET_SITE_TEAM_MEMBERS, {
+  const { data, loading, error } = useQuery<any>(GET_SITE_TEAM_MEMBERS, {
     variables: { siteId },
     skip: !siteId, // Don't run if siteId isn't available yet
   });
 
   const { data: supportData } = useQuery<any>(GET_SUPPORT_TEAM_MEMBERS, {
+    variables: { siteId },
+    skip: !siteId,
+  });
+
+  const { data: invitationsData, error: invitationsError } = useQuery<any>(GET_SITE_INVITATIONS, {
     variables: { siteId },
     skip: !siteId,
   });
@@ -99,6 +127,8 @@ export default function TeamMembersPage() {
 
   const [members, setMembers] = useState<any[]>([]);
   const [supportMembers, setSupportMembers] = useState<any[]>([]);
+  const [invitations, setInvitations] = useState<any[]>([]);
+  const [combinedMembers, setCombinedMembers] = useState<any[]>([]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [toastConfig, setToastConfig] = useState({ show: false, message: '', isSuccess: false });
@@ -117,6 +147,25 @@ export default function TeamMembersPage() {
       setSupportMembers(supportData.getSupportTeamMembers);
     }
   }, [supportData]);
+
+  useEffect(() => {
+    if (invitationsData && invitationsData.getSiteInvitations) {
+      setInvitations(invitationsData.getSiteInvitations);
+    }
+  }, [invitationsData]);
+
+  useEffect(() => {
+    // Combine members and accepted invitations only
+    // Temporarily include all invitations to test
+    const acceptedInvitations = invitations.filter(invitation =>
+      invitation.status && invitation.status !== 'Pending' && invitation.status !== 'pending'
+    );
+    const combined = [
+      ...members.map(member => ({ ...member, type: 'member' })),
+      ...acceptedInvitations.map(invitation => ({ ...invitation, type: 'invitation' }))
+    ];
+    setCombinedMembers(combined);
+  }, [members, invitations]);
 
   useEffect(() => {
     if (inviteData) {
@@ -152,19 +201,37 @@ export default function TeamMembersPage() {
     });
   };
 
-  // Team Table Columns
-  const columns: TableColumnsType<any> = [
+  // Combined Team Table Columns (Members + Invitations)
+  const combinedColumns: TableColumnsType<any> = [
     {
       title: 'Member',
       key: 'user',
-      render: (record) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="bg-black">
-            {record.user?.firstName?.[0]}{record.user?.lastName?.[0]}
-          </Avatar>
-          <span>{record.user?.firstName} {record.user?.lastName}</span>
-        </div>
-      ),
+      render: (record) => {
+        if (record.type === 'invitation') {
+          return (
+            <div className="flex items-center gap-3">
+              <Avatar className="bg-blue-600">
+                {record.invitedUserInfo?.firstName?.[0] || record.invitedMobileNumber?.[0]}{record.invitedUserInfo?.lastName?.[0] || ''}
+              </Avatar>
+              <div>
+                <span>{record.invitedUserInfo?.firstName || 'Unknown'} {record.invitedUserInfo?.lastName || ''}</span>
+                {record.invitedMobileNumber && (
+                  <div className="text-sm text-gray-500">{record.invitedMobileNumber}</div>
+                )}
+              </div>
+            </div>
+          );
+        } else {
+          return (
+            <div className="flex items-center gap-3">
+              <Avatar className="bg-black">
+                {record.user?.firstName?.[0]}{record.user?.lastName?.[0]}
+              </Avatar>
+              <span>{record.user?.firstName} {record.user?.lastName}</span>
+            </div>
+          );
+        }
+      },
     },
     {
       title: 'Designation',
@@ -175,11 +242,25 @@ export default function TeamMembersPage() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
-        <Tag color={status === 'Active' ? 'green' : 'red'} className="rounded-full px-4">
-          {status}
-        </Tag>
-      ),
+      render: (status, record) => {
+        // Treat accepted invitations as active members
+        const displayStatus = record.type === 'invitation' && status === 'Accepted' ? 'Active' : status;
+        return (
+          <Tag color={displayStatus === 'Active' ? 'green' : 'red'} className="rounded-full px-4">
+            {displayStatus}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: 'Invited By',
+      key: 'invitedBy',
+      render: (record) => {
+        if (record.type === 'invitation') {
+          return <span>{record.invitedByUser?.firstName} {record.invitedByUser?.lastName}</span>;
+        }
+        return <span>-</span>;
+      },
     },
     {
         title: 'Actions',
@@ -188,7 +269,7 @@ export default function TeamMembersPage() {
     },
   ];
 
-  // Support Table Columns (Needs different mapping because SupportMember structure is flatter)
+// Support Table Columns (Needs different mapping because SupportMember structure is flatter)
   const supportColumns: TableColumnsType<any> = [
     {
       title: 'Name',
@@ -265,19 +346,29 @@ export default function TeamMembersPage() {
 },
   ];
 
-  const TeamTable = () => (
-    <Table 
-    columns={columns} 
-    dataSource={members} 
-    pagination={{
-    pageSize: 10,
-    position: ['bottomCenter'],
-    // If this is missing or false, pagination disappears
-    hideOnSinglePage: true, 
-  }}
-    className="custom-table" 
-    rowKey="id" />
-  );
+  const TeamTable = () => {
+    if (!siteId) {
+      return <div>No site selected</div>;
+    }
+    if (loading) {
+      return <div>Loading...</div>;
+    }
+    if (error) {
+      return <div>Error loading members: {error.message}</div>;
+    }
+    return (
+      <Table 
+      columns={combinedColumns} 
+      dataSource={combinedMembers} 
+      pagination={{
+      pageSize: 10,
+      position: ['bottomCenter'],
+      hideOnSinglePage: true, 
+    }}
+      className="custom-table" 
+      rowKey={(record) => record.type === 'invitation' ? `inv_${record.id}` : `mem_${record.id}`} />
+    );
+  };
 
   const SupportTeamTable = () => (
     <Table 

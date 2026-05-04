@@ -85,7 +85,7 @@ export default function InviteModal({ open, onClose, onInvite, loading }: Invite
                   <CustomButton 
                     text="Invite" 
                     className="bg-[#2D2D2D] text-white w-full py-3 rounded-md"
-                    onClick={handleManualSubmit}
+                    onClick={() => handleManualSubmit()}
                     loading={loading}
                   />
                 </div>
