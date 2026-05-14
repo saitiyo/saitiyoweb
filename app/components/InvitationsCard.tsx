@@ -38,7 +38,7 @@ export default function InvitationCard({ invitation, onAccept, onDecline, loadin
             </span>
           </div>
           <p className="text-gray-500 text-sm font-medium">
-            Invited by <span className="text-black">{invitation.invitedBy}</span>
+            Invited by <span className="text-black">{invitation.invitedByUser.firstName}</span>
           </p>
           <div className="flex items-center gap-2 text-gray-400 text-xs mt-1">
             <CalendarOutlined style={{ fontSize: '12px' }} />
@@ -63,8 +63,9 @@ export default function InvitationCard({ invitation, onAccept, onDecline, loadin
             {/* Accept Button: Solid Black with White Text & Icon */}
             <Button 
               type="primary" 
-              onClick={() => onAccept?.(invitation.id)}
+              onClick={() => !loading && onAccept?.(invitation.id)}
               loading={loading}
+              disabled={loading}
               className="!bg-black !border-black !text-white hover:!bg-gray-800 h-11 px-8 font-bold rounded-md shadow-none flex items-center justify-center gap-2"
             >
               {!loading && <CheckOutlined style={{ color: 'white' }} />}

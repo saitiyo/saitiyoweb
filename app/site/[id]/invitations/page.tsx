@@ -155,7 +155,12 @@ export default function InvitationsPage() {
     skip: !siteId,
   })
 
-  const [acceptInvitation, { loading: acceptLoading }] = useMutation<AcceptInvitationResponse, AcceptInvitationVars>(ACCEPT_INVITATION);
+  const [acceptInvitation, { loading: acceptLoading }] = useMutation<AcceptInvitationResponse, AcceptInvitationVars>(ACCEPT_INVITATION, {
+    refetchQueries: [
+      { query: GET_MY_PENDING_INVITATIONS, variables: { userId: user?._id } },
+      { query: GET_MY_ALL_INVITATIONS, variables: { siteId: siteId } }
+    ]
+  });
   const [declineInvitation, { loading: declineLoading }] = useMutation<DeclineInvitationResponse, DeclineInvitationVars>(DECLINE_INVITATION);
 
   const [invitations, setInvitations] = useState<any>([])
@@ -185,18 +190,16 @@ export default function InvitationsPage() {
   const handleAccept = async (id: string) => {
     setLoadingId(id);
     try {
-      const response = await acceptInvitation({
+      await acceptInvitation({
         variables: { invitationId: id, userId: user?._id }
       });
 
-      const acceptedInvitation = response?.data?.acceptInvitation?.data;
-      if (acceptedInvitation) {
-        setInvitations((prev: any[]) =>
-          prev.map((inv: any) =>
-            inv.id === id ? { ...inv, ...acceptedInvitation } : inv
-          )
-        );
-      }
+      // Update local state immediately to move invitation to history
+      setInvitations((prev: any[]) =>
+        prev.map((inv: any) =>
+          inv.id === id ? { ...inv, status: 'Accepted' } : inv
+        )
+      );
 
       toast.success('Invitation accepted successfully!');
     } catch (error) {

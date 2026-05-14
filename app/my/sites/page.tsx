@@ -24,8 +24,26 @@ export const GET_MY_SITES = gql`
 }
 `
 
+export const GET_ACCEPTED_INVITATIONS = gql`
+  query GetAcceptedInvitations($userId: ID!) {
+    getAcceptedInvitations(userId: $userId) {
+      siteId
+      siteName
+      status
+    }
+  }
+`
+
 interface GetMySites {
-  getMySites:Site[]
+  getMySites: Site[];
+}
+
+interface GetAcceptedInvitations {
+  getAcceptedInvitations: Array<{
+    siteId: string;
+    siteName: string;
+    status?: string;
+  }>;
 }
 
 export default function Page() {
@@ -37,27 +55,50 @@ console.log(user)
 const {data,loading,error} = useQuery<GetMySites>(GET_MY_SITES,{
   variables:{
     userId:user?._id
-  }
+  },
+  skip: !user?._id,
+})
+
+const {data: invitedSiteData, loading: invitedLoading, error: invitedError} = useQuery<GetAcceptedInvitations>(GET_ACCEPTED_INVITATIONS, {
+  variables: {
+    userId: user?._id
+  },
+  skip: !user?._id,
 })
 
 const [sites, setSites] = React.useState<Site[]>([]);
 
-
 useEffect(()=>{
-  console.log(data?.getMySites,'========sssss')
-  if(data && data.getMySites){
-      setSites(data.getMySites)
+  const ownedSites = data?.getMySites ?? [];
+  const invitedSites = invitedSiteData?.getAcceptedInvitations?.map(inv => ({
+    _id: inv.siteId,
+    name: inv.siteName,
+    status: inv.status || 'ACCEPTED',
+    daysLeft: 0,
+    progress: 0,
+    notificationCount: 0,
+  })) ?? [];
+
+  const combinedSites = [...ownedSites];
+  invitedSites.forEach(site => {
+    if (!combinedSites.some(existing => existing._id === site._id)) {
+      combinedSites.push(site);
+    }
+  });
+
+  setSites(combinedSites);
+
+  if (error) {
+     console.log(error, "get sites error")
   }
-
-  if(error){
-     //handle error
-     console.log(error,"get sites error")
+  if (invitedError) {
+     console.log(invitedError, "get invited sites error")
   }
-},[data,error])
+}, [data, invitedSiteData, error, invitedError])
 
 
 
-if(loading){
+if (loading || invitedLoading) {
   return (
     <LoadingComponent />
   )

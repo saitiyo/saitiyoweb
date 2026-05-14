@@ -113,6 +113,27 @@ export const DECLINE_INVITATION = gql`
   }
 `;
 
+type AcceptInvitationResponse = {
+  acceptInvitation: {
+    data: Invitation;
+  };
+};
+
+type AcceptInvitationVars = {
+  invitationId: string;
+  userId?: string;
+};
+
+type DeclineInvitationResponse = {
+  declineInvitation: {
+    id: string;
+    status: string;
+  };
+};
+
+type DeclineInvitationVars = {
+  invitationId: string;
+};
 
 export default function InvitationsPage() {
   const {user} = useAppSelector((state:RootState) => state.authSlice);
@@ -133,8 +154,13 @@ export default function InvitationsPage() {
     skip: !user?._id,
   }); 
 
-  const [acceptInvitation, { loading: acceptLoading }] = useMutation(ACCEPT_INVITATION);
-  const [declineInvitation, { loading: declineLoading }] = useMutation(DECLINE_INVITATION);
+  const [acceptInvitation, { loading: acceptLoading }] = useMutation<AcceptInvitationResponse, AcceptInvitationVars>(ACCEPT_INVITATION, {
+    refetchQueries: [
+      { query: GET_MY_PENDING_INVITATIONS, variables: { userId: user?._id } },
+      { query: GET_ACCEPTED_INVITATIONS, variables: { userId: user?._id } }
+    ]
+  });
+  const [declineInvitation, { loading: declineLoading }] = useMutation<DeclineInvitationResponse, DeclineInvitationVars>(DECLINE_INVITATION);
 
   const [invitations, setInvitations] = useState<any>([])
   const [acceptedInvitations, setAcceptedInvitations] = useState<any>([])
@@ -155,14 +181,19 @@ export default function InvitationsPage() {
   const handleAccept = async (id: string) => {
     setLoadingId(id);
     try {
-      await acceptInvitation({
+      const response = await acceptInvitation({
         variables: { invitationId: id, userId: user?._id }
       });
+
+      const acceptedInvitation = response?.data?.acceptInvitation?.data;
+      if (acceptedInvitation) {
+        setInvitations((prev: any[]) => prev.filter((inv: any) => inv.id !== id));
+        setAcceptedInvitations((prev: any[]) => [acceptedInvitation, ...prev]);
+        await refetch();
+        await refetchAcceptedInvitations();
+      }
+
       toast.success('Invitation accepted successfully!');
-      await Promise.all([
-        refetch(),
-        refetchAcceptedInvitations?.(),
-      ]);
     } catch (error) {
       console.error('Error accepting invitation:', error);
       toast.error('Failed to accept invitation. Please try again.');
@@ -187,14 +218,18 @@ export default function InvitationsPage() {
     }
   };
 
+  const pendingInvitations = invitations.filter((inv: any) =>
+    (inv.status || '').toLowerCase() === 'pending'
+  );
+
   const items = [
     {
       key: '1',
-      label: `PENDING (${invitations.length})`,
+      label: `PENDING (${pendingInvitations.length})`,
       children: (
         <div className="pt-6">
-          {invitations.length > 0 ? (
-            invitations.map((inv: Invitation) => (
+          {pendingInvitations.length > 0 ? (
+            pendingInvitations.map((inv: Invitation) => (
               <InvitationCard 
                 key={inv.id} 
                 invitation={inv} 
