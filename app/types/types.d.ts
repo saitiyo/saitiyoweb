@@ -10,7 +10,7 @@ interface User {
 
 type Site = {
   _id: string;
-  owner:string
+  owner?: string;
   name: string;
   logoUrl?: string;
   status?: string;

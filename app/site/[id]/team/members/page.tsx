@@ -95,8 +95,9 @@ export default function TeamMembersPage() {
   const { user } = useSelector((state: RootState) => state.authSlice);
   const router = useRouter();
   const params = useParams();
-  const siteId = params.id;
-  const userId = user?._id;
+  const rawSiteId = params?.id;
+  const siteId = Array.isArray(rawSiteId) ? rawSiteId[0] : rawSiteId;
+  const invitedByUserId = user?._id || user?.id;
 
   // --- FIXED: Added variables to useQuery hooks ---
   const { data, loading, error } = useQuery<any>(GET_SITE_TEAM_MEMBERS, {
@@ -133,7 +134,10 @@ export default function TeamMembersPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [toastConfig, setToastConfig] = useState({ show: false, message: '', isSuccess: false });
 
-  const [inviteMember, { data: inviteData, error: inviteError }] = useMutation<any>(INVITE_TEAM_MEMBER);
+  const [inviteMember, { data: inviteData, error: inviteError }] = useMutation<any>(INVITE_TEAM_MEMBER, {
+    refetchQueries: [{ query: GET_SITE_INVITATIONS, variables: { siteId } }],
+    awaitRefetchQueries: true,
+  });
 
   useEffect(() => {
     if (data && data.getSiteTeamMembers) {
@@ -148,24 +152,6 @@ export default function TeamMembersPage() {
     }
   }, [supportData]);
 
-  useEffect(() => {
-    if (invitationsData && invitationsData.getSiteInvitations) {
-      setInvitations(invitationsData.getSiteInvitations);
-    }
-  }, [invitationsData]);
-
-  useEffect(() => {
-    // Combine members and accepted invitations only
-    // Temporarily include all invitations to test
-    const acceptedInvitations = invitations.filter(invitation =>
-      invitation.status && invitation.status !== 'Pending' && invitation.status !== 'pending'
-    );
-    const combined = [
-      ...members.map(member => ({ ...member, type: 'member' })),
-      ...acceptedInvitations.map(invitation => ({ ...invitation, type: 'invitation' }))
-    ];
-    setCombinedMembers(combined);
-  }, [members, invitations]);
 
   useEffect(() => {
     if (inviteData) {
@@ -191,50 +177,42 @@ export default function TeamMembersPage() {
   }, [inviteData, inviteError]);
 
   const handleInvite = (phone: string) => {
+    if (!siteId || !invitedByUserId) {
+      setToastConfig({
+        show: true,
+        message: 'Unable to send invite: missing site or user data.',
+        isSuccess: false,
+      });
+      setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 4000);
+      return;
+    }
+
     setInviteLoading(true);
     inviteMember({
       variables: {
         siteId,
-        invitedByUserId: userId,
+        invitedByUserId,
         invitedMobileNumber: phone,
       }
     });
   };
 
-  // Combined Team Table Columns (Members + Invitations)
-  const combinedColumns: TableColumnsType<any> = [
+// Team members Table Columns
+ const teamMembersColumns: TableColumnsType<any> = [
     {
-      title: 'Member',
-      key: 'user',
-      render: (record) => {
-        if (record.type === 'invitation') {
-          return (
-            <div className="flex items-center gap-3">
-              <Avatar className="bg-blue-600">
-                {record.invitedUserInfo?.firstName?.[0] || record.invitedMobileNumber?.[0]}{record.invitedUserInfo?.lastName?.[0] || ''}
-              </Avatar>
-              <div>
-                <span>{record.invitedUserInfo?.firstName || 'Unknown'} {record.invitedUserInfo?.lastName || ''}</span>
-                {record.invitedMobileNumber && (
-                  <div className="text-sm text-gray-500">{record.invitedMobileNumber}</div>
-                )}
-              </div>
-            </div>
-          );
-        } else {
-          return (
-            <div className="flex items-center gap-3">
-              <Avatar className="bg-black">
-                {record.user?.firstName?.[0]}{record.user?.lastName?.[0]}
-              </Avatar>
-              <span>{record.user?.firstName} {record.user?.lastName}</span>
-            </div>
-          );
-        }
-      },
+      title: 'Name',
+      key: 'name',
+      render: (record) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="bg-blue-600">
+            {record.user?.firstName?.[0]}{record.user?.lastName?.[0]}
+          </Avatar>
+          <span>{record.user?.firstName} {record.user?.lastName}</span>
+        </div>
+      ),
     },
     {
-      title: 'Designation',
+      title: 'Role',
       dataIndex: 'role',
       key: 'role',
     },
@@ -242,32 +220,20 @@ export default function TeamMembersPage() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status, record) => {
-        // Treat accepted invitations as active members
-        const displayStatus = record.type === 'invitation' && status === 'Accepted' ? 'Active' : status;
-        return (
-          <Tag color={displayStatus === 'Active' ? 'green' : 'red'} className="rounded-full px-4">
-            {displayStatus}
-          </Tag>
-        );
-      },
+      render: (status) => (
+        <Tag color={status === 'Active' ? 'green' : 'blue'} className="rounded-full px-4">
+          {status}
+        </Tag>
+      ),
     },
     {
-      title: 'Invited By',
-      key: 'invitedBy',
-      render: (record) => {
-        if (record.type === 'invitation') {
-          return <span>{record.invitedByUser?.firstName} {record.invitedByUser?.lastName}</span>;
-        }
-        return <span>-</span>;
-      },
-    },
-    {
-        title: 'Actions',
-        key: 'actions',
-        render: () => <Button type="text" icon={<MoreOutlined />} />,
+      title: 'Joined',
+      dataIndex: 'joinedAt',
+      key: 'joinedAt',
+      render: (joinedAt: string) => joinedAt ? new Date(joinedAt).toLocaleDateString() : '-',
     },
   ];
+
 
 // Support Table Columns (Needs different mapping because SupportMember structure is flatter)
   const supportColumns: TableColumnsType<any> = [
@@ -357,16 +323,16 @@ export default function TeamMembersPage() {
       return <div>Error loading members: {error.message}</div>;
     }
     return (
-      <Table 
-      columns={combinedColumns} 
-      dataSource={combinedMembers} 
+      <Table  
+      columns={teamMembersColumns} 
+      dataSource={members} 
       pagination={{
       pageSize: 10,
       position: ['bottomCenter'],
       hideOnSinglePage: true, 
     }}
       className="custom-table" 
-      rowKey={(record) => record.type === 'invitation' ? `inv_${record.id}` : `mem_${record.id}`} />
+      rowKey={(record) => record.id} />
     );
   };
 
