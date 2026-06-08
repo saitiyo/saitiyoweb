@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import PhoneInput from 'react-phone-number-input';
-import { parsePhoneNumber } from 'libphonenumber-js';
+import { parsePhoneNumber, CountryCode } from 'libphonenumber-js';
 import 'react-phone-number-input/style.css';
 
 interface PhoneInputProps {
@@ -10,7 +10,7 @@ interface PhoneInputProps {
   onChange?: (phoneNumber: string | undefined) => void;
   placeholder?: string;
   disabled?: boolean;
-  defaultCountry?: string;
+  defaultCountry?: CountryCode;
   error?: string;
 }
 
@@ -19,7 +19,7 @@ const PhoneInputComponent: React.FC<PhoneInputProps> = ({
   onChange,
   placeholder = 'Enter phone number',
   disabled = false,
-  defaultCountry = 'UG',
+  defaultCountry = 'UG' as CountryCode,
   error,
 }) => {
   const [phoneValue, setPhoneValue] = useState<string | undefined>(value || undefined);
