@@ -1,6 +1,5 @@
 import {useEffect} from "react";
 import {ToastContainer, toast} from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 type Props = {
     message: string;
@@ -11,15 +10,21 @@ type Props = {
 
 const CustomToast = ({message, show = false, isError= false, isSuccess= false}: Props) => {
     useEffect(() => {
-        if (show) {
-            toast(message);
+        if (show && message) {
+            if (isSuccess && !isError) {
+                toast.success(message, { autoClose: 3000 });
+            } else if (isError && !isSuccess) {
+                toast.error(message, { autoClose: 3000 });
+            } else {
+                toast(message, { autoClose: 3000 });
+            }
         }
-    }, [message, show]);
+    }, [message, show, isError, isSuccess]);
 
     return (
         <ToastContainer
     position="top-center"
-    autoClose={1000}
+    autoClose={3000}
     hideProgressBar={false}
     newestOnTop={false}
     closeOnClick
@@ -34,10 +39,9 @@ const CustomToast = ({message, show = false, isError= false, isSuccess= false}: 
                 ? "red"
                 : isSuccess && !isError
                 ? "green"
-                : "white", // Default to white if neither
+                : "white",
         color: "white",
     }}
-    // progressStyle is removed to fix the TS error
 />
     );
 };

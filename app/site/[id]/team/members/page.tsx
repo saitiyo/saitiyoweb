@@ -128,15 +128,35 @@ export default function TeamMembersPage() {
 
   const [members, setMembers] = useState<any[]>([]);
   const [supportMembers, setSupportMembers] = useState<any[]>([]);
-  const [invitations, setInvitations] = useState<any[]>([]);
-  const [combinedMembers, setCombinedMembers] = useState<any[]>([]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState<string>('1');
   const [toastConfig, setToastConfig] = useState({ show: false, message: '', isSuccess: false });
 
-  const [inviteMember, { data: inviteData, error: inviteError }] = useMutation<any>(INVITE_TEAM_MEMBER, {
+  const [inviteMember, { data: inviteData, error: inviteError, loading: inviteMutationLoading }] = useMutation<any>(INVITE_TEAM_MEMBER, {
     refetchQueries: [{ query: GET_SITE_INVITATIONS, variables: { siteId } }],
     awaitRefetchQueries: true,
+    errorPolicy: 'ignore', // Don't treat refetch errors as mutation errors
+    onCompleted: (response) => {
+      const result = response?.inviteTeamMember;
+      if (result) {
+        setIsInviteModalOpen(false);
+        setActiveTabKey('1');
+        setToastConfig({
+          show: true,
+          message: result.message || 'Invitation sent successfully',
+          isSuccess: result.success ?? true,
+        });
+        setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 4000);
+      }
+    },
+    onError: (mutationError) => {
+      setToastConfig({
+        show: true,
+        message: mutationError.message || 'Failed to send invitation',
+        isSuccess: false,
+      });
+      setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 4000);
+    },
   });
 
   useEffect(() => {
@@ -154,9 +174,9 @@ export default function TeamMembersPage() {
 
 
   useEffect(() => {
-    if (inviteData) {
-      setInviteLoading(false);
+    if (inviteData?.inviteTeamMember) {
       setIsInviteModalOpen(false);
+      setActiveTabKey('1');
       setToastConfig({
         show: true,
         message: inviteData.inviteTeamMember.message,
@@ -164,17 +184,7 @@ export default function TeamMembersPage() {
       });
       setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 4000);
     }
-    
-    if (inviteError) {
-      setInviteLoading(false);
-      setToastConfig({
-        show: true,
-        message: inviteError.message || "An error occurred",
-        isSuccess: false
-      });
-      setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 4000);
-    }
-  }, [inviteData, inviteError]);
+  }, [inviteData]);
 
   const handleInvite = (phone: string) => {
     if (!siteId || !invitedByUserId) {
@@ -187,7 +197,6 @@ export default function TeamMembersPage() {
       return;
     }
 
-    setInviteLoading(true);
     inviteMember({
       variables: {
         siteId,
@@ -380,13 +389,13 @@ export default function TeamMembersPage() {
         </div>
       </div>
 
-      <Tabs defaultActiveKey="1" items={tabItems} className="custom-tabs" />
+      <Tabs activeKey={activeTabKey} onChange={(key) => setActiveTabKey(key)} items={tabItems} className="custom-tabs" />
 
       <InviteModal 
         open={isInviteModalOpen} 
         onClose={() => setIsInviteModalOpen(false)}
         onInvite={handleInvite}
-        loading={inviteLoading}
+        loading={inviteMutationLoading}
       />
 
       <style jsx global>{`

@@ -1,5 +1,3 @@
-import type { StaticImageData } from 'next/image';
-
 declare module '*.avif' {
   const src: string;
   export default src;
@@ -21,7 +19,7 @@ declare module '*.jpeg' {
   export default src;
 }
 declare module '*.png' {
-  const src: StaticImageData;
+  const src: string;
   export default src;
 }
 declare module '*.webp' {
@@ -33,3 +31,9 @@ declare module '*.svg' {
   const ReactComponent: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   export default ReactComponent;
 }
+
+declare module '*.css';
+declare module '*/*.css';
+declare module 'antd/dist/reset.css';
+declare module 'react-toastify/dist/ReactToastify.css';
+declare module './globals.css';
