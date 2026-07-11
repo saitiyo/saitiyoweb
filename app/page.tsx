@@ -153,7 +153,7 @@ export default function Home() {
         <div className="max-w-[320px] mb-8 border border-blue-400 p-4 border-dashed relative">
           <p className="text-xl text-gray-800 leading-tight">
             Scan the QR code below using the <br />
-            <span className="font-semibold text-black">Saitkit app</span> <br />
+            <span className="font-semibold text-black">Saitiyo app</span> <br />
             to connect this device
           </p>
         </div>
