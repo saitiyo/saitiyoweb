@@ -42,10 +42,10 @@ export default function InviteModal({ open, onClose, onInvite, loading }: Invite
     }
 
     // Check if it's a valid international phone number
-    //if (!isValidPhoneNumber(phone)) {
-      //setError('Please enter a valid phone number');
-      //return false;
-    //}
+    if (!isValidPhoneNumber(phone)) {
+      setError('Please enter a valid phone number');
+      return false;
+    }
 
     // Parse and check national number length (excluding country code)
     try {
