@@ -20,6 +20,7 @@ import { GQL_URL } from "@/config/api";
 import { Suspense, useMemo } from "react";
 import Loader from "./components/Loader";
 import { ApolloProvider } from "@apollo/client/react";
+import { ToastContainer } from "react-toastify";
 
 const theme = {
   token: {
@@ -119,6 +120,7 @@ const LayoutPage = ({ children }: Readonly<{ children: React.ReactNode }>) => {
           <Suspense fallback={<Loader size="large" />}>
             {children}
           </Suspense>
+          <ToastContainer position="top-center" autoClose={3000} />
         </Provider>
       </ConfigProvider>
     </ApolloProvider>

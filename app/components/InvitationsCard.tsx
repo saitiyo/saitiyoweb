@@ -5,8 +5,7 @@ import { Button } from 'antd';
 import { 
   MailOutlined, 
   CalendarOutlined, 
-  CheckOutlined, 
-  CloseOutlined 
+  CheckOutlined
 } from '@ant-design/icons';
 
 interface Props {
@@ -53,7 +52,9 @@ export default function InvitationCard({ invitation, onAccept, onDecline, loadin
           <>
             {/* Decline Button: Outlined Black/White */}
             <Button 
+              htmlType="button"
               onClick={() => onDecline?.(invitation.id)}
+              loading={loading}
               className="!border-gray-300 !text-black hover:!border-black hover:!text-black h-11 px-6 font-bold rounded-md shadow-none transition-colors"
               disabled={loading}
             >
@@ -63,7 +64,8 @@ export default function InvitationCard({ invitation, onAccept, onDecline, loadin
             {/* Accept Button: Solid Black with White Text & Icon */}
             <Button 
               type="primary" 
-              onClick={() => !loading && onAccept?.(invitation.id)}
+              htmlType="button"
+              onClick={() => onAccept?.(invitation.id)}
               loading={loading}
               disabled={loading}
               className="!bg-black !border-black !text-white hover:!bg-gray-800 h-11 px-8 font-bold rounded-md shadow-none flex items-center justify-center gap-2"

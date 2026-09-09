@@ -105,10 +105,14 @@ export const ACCEPT_INVITATION = gql`
 `;
 
 export const DECLINE_INVITATION = gql`
-  mutation DeclineInvitation($invitationId: ID!) {
-    declineInvitation(invitationId: $invitationId) {
-      id
-      status
+  mutation RejectInvitation($invitationId: ID!, $userId: ID!) {
+    rejectInvitation(invitationId: $invitationId, userId: $userId) {
+      success
+      message
+      data {
+        id
+        status
+      }
     }
   }
 `;
@@ -125,14 +129,19 @@ type AcceptInvitationVars = {
 };
 
 type DeclineInvitationResponse = {
-  declineInvitation: {
-    id: string;
-    status: string;
+  rejectInvitation: {
+    success: boolean;
+    message: string;
+    data?: {
+      id: string;
+      status: string;
+    };
   };
 };
 
 type DeclineInvitationVars = {
   invitationId: string;
+  userId: string;
 };
 
 export default function InvitationsPage() {
@@ -203,16 +212,29 @@ export default function InvitationsPage() {
   };
 
   const handleDecline = async (id: string) => {
+    if (!user?._id) {
+      toast.error('Please sign in before declining an invitation.');
+      return;
+    }
+
     setLoadingId(id);
     try {
-      await declineInvitation({
-        variables: { invitationId: id }
+      const response = await declineInvitation({
+        variables: { invitationId: id, userId: user._id }
       });
+
+      const result = response.data?.rejectInvitation;
+      if (!result?.success) {
+        throw new Error(result?.message || 'The invitation could not be declined.');
+      }
+
+      setInvitations((prev: any[]) => prev.filter((inv: any) => inv.id !== id));
       toast.success('Invitation declined successfully!');
       await refetch();
     } catch (error) {
       console.error('Error declining invitation:', error);
-      toast.error('Failed to decline invitation. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to decline invitation. Please try again.';
+      toast.error(message);
     } finally {
       setLoadingId(null);
     }
