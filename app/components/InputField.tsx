@@ -1,6 +1,6 @@
 import React from 'react'
 
-type Props = {
+type Props = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'placeholder' | 'type' | 'name' | 'value' | 'onChange' | 'onBlur' | 'className'> & {
   placeholder?: string
   type?: string
   className?: string
