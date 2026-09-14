@@ -65,7 +65,7 @@ export const GET_INVENTORY_ITEMS = gql`
 type StockFilter = "All" | "In stock" | "Low stock" | "Out of stock";
 
 type InventoryApiItem = {
-	id: string;
+	id: unknown;
 	name: string;
 	imageUri?: string | null;
 	price?: number | null;
@@ -99,6 +99,14 @@ const filters: StockFilter[] = ["All", "In stock", "Low stock", "Out of stock"];
 
 const formatPrice = (price: number) => `Ush ${price.toLocaleString("en-US")}`;
 
+export const getInventoryItemId = (value: unknown): string => {
+	if (typeof value === "string" || typeof value === "number") return String(value);
+	if (!value || typeof value !== "object") return "";
+
+	const record = value as Record<string, unknown>;
+	return getInventoryItemId(record.id ?? record._id ?? record.$oid);
+};
+
 export default function InventoryPage() {
 	const params = useParams();
 	const siteId = typeof params.id === "string" ? params.id : params.id?.[0];
@@ -111,12 +119,13 @@ export default function InventoryPage() {
 	});
 
 	const inventory = useMemo<InventoryItem[]>(() => (data?.getInventorySiteItems ?? []).map((item) => {
+		const itemId = getInventoryItemId(item.id);
 		const stock = item.stock ?? 0;
 		const defaultUom = item.uoms?.find((uom) => uom.isDefault) ?? item.uoms?.[0];
 		const status: Exclude<StockFilter, "All"> = stock <= 0 ? "Out of stock" : stock <= 10 ? "Low stock" : "In stock";
 
 		return {
-			id: item.id,
+			id: itemId,
 			name: item.name,
 			category: item.primaryCategory ?? item.subcategory ?? "Uncategorized",
 			quantity: defaultUom?.conversionFactor ?? 1,
@@ -171,7 +180,7 @@ export default function InventoryPage() {
 			<section className="products-section mb-6">
 				<div className="section-heading"><div><p className="eyebrow">Current catalogue</p><h2>{activeFilter === "All" ? "All products" : activeFilter}</h2></div><span>{visibleItems.length} items</span></div>
 				<div className="product-list grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-					{visibleItems.map((item) => <article className="product-row inventory-product-card relative flex min-h-[214px] flex-col justify-between rounded-2xl border border-[#d9e2e6] bg-white p-5 shadow-[0_5px_16px_rgba(31,52,64,0.08)] transition hover:-translate-y-1 hover:border-[#b8c8cf] hover:shadow-[0_12px_24px_rgba(31,52,64,0.14)]" key={item.id}><div className="product-card-top flex items-start justify-between"><div className="product-icon flex h-14 w-14 items-center justify-center rounded-xl text-[#74818b]" style={{ backgroundColor: item.accent }}><Box size={27} strokeWidth={1.7} /></div><button className="row-action flex h-8 w-8 items-center justify-center rounded-full bg-[#f0f4f5] text-[#74818b] transition hover:bg-[#e3eaed] hover:text-[#17232d]" type="button" aria-label={`Open ${item.name}`}><ArrowRight size={18} /></button></div><div className="product-main mt-5"><h3 className="text-lg font-bold tracking-[-0.025em] text-[#17232d]">{item.name}</h3><p className="mt-1.5 text-xs text-[#87949d]">{item.category} <span className="px-1">·</span> {item.quantity} {item.unit}</p></div><div className="product-stock mt-5 flex items-center justify-between gap-3 border-t border-[#edf1f3] pt-4"><strong className="text-[15px] font-bold text-[#17232d]">{formatPrice(item.price)}</strong><span className={`stock-pill rounded-full px-2.5 py-1 text-[10px] font-bold ${item.status === "In stock" ? "bg-[#e8f2db] text-[#527235]" : item.status === "Low stock" ? "bg-[#fff0d9] text-[#936a31]" : "bg-[#fae5e5] text-[#a1484b]"}`}>{item.status === "In stock" ? `${item.stock} in stock` : item.status}</span></div></article>)}
+					{visibleItems.map((item) => <article className="product-row inventory-product-card relative flex min-h-[214px] flex-col justify-between rounded-2xl border border-[#d9e2e6] bg-white p-5 shadow-[0_5px_16px_rgba(31,52,64,0.08)] transition hover:-translate-y-1 hover:border-[#b8c8cf] hover:shadow-[0_12px_24px_rgba(31,52,64,0.14)]" key={item.id}><div className="product-card-top flex items-start justify-between"><div className="product-icon flex h-14 w-14 items-center justify-center rounded-xl text-[#74818b]" style={{ backgroundColor: item.accent }}><Box size={27} strokeWidth={1.7} /></div><Link className="row-action flex h-8 w-8 items-center justify-center rounded-full bg-[#f0f4f5] text-[#74818b] transition hover:bg-[#e3eaed] hover:text-[#17232d]" href={`/site/${siteId}/inventory/inventorydetails?itemId=${encodeURIComponent(String(item.id))}`} aria-label={`Open ${item.name}`}><ArrowRight size={18} /></Link></div><div className="product-main mt-5"><h3 className="text-lg font-bold tracking-[-0.025em] text-[#17232d]">{item.name}</h3><p className="mt-1.5 text-xs text-[#87949d]">{item.category} <span className="px-1">·</span> {item.quantity} {item.unit}</p></div><div className="product-stock mt-5 flex items-center justify-between gap-3 border-t border-[#edf1f3] pt-4"><strong className="text-[15px] font-bold text-[#17232d]">{formatPrice(item.price)}</strong><span className={`stock-pill rounded-full px-2.5 py-1 text-[10px] font-bold ${item.status === "In stock" ? "bg-[#e8f2db] text-[#527235]" : item.status === "Low stock" ? "bg-[#fff0d9] text-[#936a31]" : "bg-[#fae5e5] text-[#a1484b]"}`}>{item.status === "In stock" ? `${item.stock} in stock` : item.status}</span></div></article>)}
 					{visibleItems.length === 0 && <div className="empty-state"><Search size={24} /><strong>No products found</strong><span>Try a different search or filter.</span></div>}
 				</div>
 			</section>
