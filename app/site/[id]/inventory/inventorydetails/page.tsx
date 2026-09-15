@@ -12,10 +12,13 @@ import {
   Plus,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useSelector } from "react-redux";
 import LoadingComponent from "@/app/components/LoadingComponent";
+import { RootState } from "@/redux/store";
 
 const GET_INVENTORY_ITEM = gql`
   query GetInventoryItem($id: ID!) {
@@ -62,6 +65,12 @@ const DELETE_ITEM_UOM = gql`
   }
 `;
 
+const ADJUST_ITEM_STOCK = gql`
+  mutation AdjustItemStock($input: AdjustStockInput!) {
+    adjustItemStock(input: $input) { id stock }
+  }
+`;
+
 type UnitOfMeasure = {
   id: string;
   label?: string | null;
@@ -99,6 +108,7 @@ export default function InventoryDetailsPage() {
   const searchParams = useSearchParams();
   const siteId = typeof params.id === "string" ? params.id : params.id?.[0];
   const itemId = searchParams.get("itemId");
+  const operatorId = useSelector((state: RootState) => state.authSlice.user?.id ?? state.authSlice.user?._id);
   const [selectedUnit, setSelectedUnit] = useState<UnitOfMeasure | null>(null);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
   const [unitLabel, setUnitLabel] = useState("");
@@ -106,20 +116,25 @@ export default function InventoryDetailsPage() {
   const [unitSellingPrice, setUnitSellingPrice] = useState("");
   const [unitCostPrice, setUnitCostPrice] = useState("");
   const [unitActionError, setUnitActionError] = useState("");
+  const [isAdjustingStock, setIsAdjustingStock] = useState(false);
+  const [stockAdjustment, setStockAdjustment] = useState("");
+  const [stockActionError, setStockActionError] = useState("");
+  const [stockOverride, setStockOverride] = useState<{ itemId: string; value: number } | null>(null);
   const { data, loading, error } = useQuery<InventoryResponse>(GET_INVENTORY_ITEM, {
     variables: { id: itemId },
     skip: !siteId || !itemId,
     fetchPolicy: "no-cache",
   });
-  const mutationOptions = { refetchQueries: itemId ? [{ query: GET_INVENTORY_ITEM, variables: { id: itemId } }] : [] };
+  const mutationOptions = { awaitRefetchQueries: true, refetchQueries: itemId ? [{ query: GET_INVENTORY_ITEM, variables: { id: itemId } }] : [] };
   const [updateItemUom, { loading: isUpdatingUnit }] = useMutation(UPDATE_ITEM_UOM, mutationOptions);
   const [setDefaultUom, { loading: isSettingDefault }] = useMutation(SET_DEFAULT_UOM, mutationOptions);
   const [deleteItemUom, { loading: isDeletingUnit }] = useMutation(DELETE_ITEM_UOM, mutationOptions);
+  const [adjustItemStock, { loading: isUpdatingStock }] = useMutation(ADJUST_ITEM_STOCK, mutationOptions);
 
   const item = data?.getInventoryItem;
   const baseUnit = item?.uoms?.find((unit) => unit.isBaseUnit || unit.isDefault) ?? item?.uoms?.[0];
   const itemUnits = item?.uoms?.length ? item.uoms : baseUnit ? [baseUnit] : [];
-  const stock = item?.stock ?? 0;
+  const stock = stockOverride?.itemId === itemId ? stockOverride.value : item?.stock ?? 0;
   const price = item?.price ?? 0;
   const costPrice = item?.costPrice ?? 0;
   const margin = price > 0 ? Math.round(((price - costPrice) / price) * 100) : 0;
@@ -163,7 +178,36 @@ export default function InventoryDetailsPage() {
     if (!window.confirm(`Delete the ${selectedUnit.label ?? "selected"} unit?`)) return;
     try { await deleteItemUom({ variables: { id: selectedUnit.id } }); setSelectedUnit(null); } catch (actionError) { setUnitActionError(actionError instanceof Error ? actionError.message : "Unable to delete this unit."); }
   };
-
+  const openStockAdjustment = () => {
+    setStockAdjustment("");
+    setStockActionError("");
+    setIsAdjustingStock(true);
+  };
+  const saveStockAdjustment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const adjustment = Number(stockAdjustment);
+    const nextStock = stock + adjustment;
+    if (!stockAdjustment.trim() || !Number.isInteger(adjustment) || adjustment === 0) {
+      setStockActionError("Enter a whole number adjustment, such as 10 or -3.");
+      return;
+    }
+    if (nextStock < 0) {
+      setStockActionError("Stock cannot be reduced below zero.");
+      return;
+    }
+    try {
+      const stockUnit = item?.uoms?.find((unit) => unit.isDefault || unit.isBaseUnit) ?? item?.uoms?.[0];
+      if (!itemId || !siteId || !stockUnit?.id || !operatorId) {
+        setStockActionError("A stock unit and authenticated operator are required to adjust stock.");
+        return;
+      }
+      await adjustItemStock({ variables: { input: { itemId, uomId: stockUnit.id, qty: adjustment, movementType: "ADJUSTMENT", operatorId, siteId } } });
+      if (itemId) setStockOverride({ itemId, value: nextStock });
+      setIsAdjustingStock(false);
+    } catch (actionError) {
+      setStockActionError(actionError instanceof Error ? actionError.message : "Unable to adjust stock.");
+    }
+  };
   if (loading) return <LoadingComponent />;
   if (error || !item) {
     return (
@@ -209,27 +253,31 @@ export default function InventoryDetailsPage() {
 
       <section className="detail-section management-section">
         <p className="section-label">Management</p>
-        <div className="management-card"><button type="button" className="management-action archive-action"><Package size={19} /><span>Adjust stock</span><ChevronRight size={19} /></button><button type="button" className="management-action delete-action"><Trash2 size={19} /><span>Delete item</span><ChevronRight size={19} /></button></div>
+        <div className="management-card"><button type="button" className="management-action archive-action" onClick={openStockAdjustment}><Package size={19} /><span>Adjust stock</span><ChevronRight size={19} /></button></div>
+        {stockActionError && !isAdjustingStock && <p className="unit-action-error management-error" role="alert">{stockActionError}</p>}
       </section>
 
+      {isAdjustingStock && <div className="stock-modal-backdrop" role="presentation" onMouseDown={() => setIsAdjustingStock(false)}><section className="stock-modal" role="dialog" aria-modal="true" aria-labelledby="stock-modal-title" onMouseDown={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => setIsAdjustingStock(false)} aria-label="Close stock adjustment"><X size={19} /></button><p className="section-label">Inventory action</p><h2 id="stock-modal-title">Adjust stock</h2><p className="stock-current">Current stock: <strong>{stock} base units</strong></p><form onSubmit={saveStockAdjustment}><label>Adjustment<input autoFocus type="number" step="1" value={stockAdjustment} onChange={(event) => setStockAdjustment(event.target.value)} placeholder="e.g. 10 or -3" /></label><p className="stock-help">Use a positive number to add stock or a negative number to remove it.</p>{stockActionError && <p className="unit-action-error" role="alert">{stockActionError}</p>}<div className="modal-actions"><button type="button" className="secondary-action" onClick={() => setIsAdjustingStock(false)}>Cancel</button><button type="submit" className="primary-action" disabled={isUpdatingStock}>{isUpdatingStock ? "Saving..." : "Save stock"}</button></div></form></section></div>}
+
       <style jsx>{`
-        .inventory-details-page { --ink: #17232d; --muted: #99a3ad; --line: #e6ebee; min-height: calc(100vh - 84px); background: #f6fafc; color: var(--ink); padding: 24px clamp(18px, 4vw, 64px) 48px; }
+        .inventory-details-page { --ink: #111; --muted: #777; --line: #dedede; min-height: calc(100vh - 84px); background: #fff; color: var(--ink); padding: 24px clamp(18px, 4vw, 64px) 48px; }
         .details-header { align-items: center; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 40px 1fr 40px; min-height: 64px; }
-        .details-header h1 { color: #929ca7; font-size: clamp(22px, 3vw, 30px); font-weight: 500; text-align: center; }
-        .icon-link { align-items: center; background: transparent; border: 0; color: #5d6973; display: flex; height: 40px; justify-content: center; padding: 0; transition: color .2s ease; }
+        .details-header h1 { color: #111; font-size: clamp(22px, 3vw, 30px); font-weight: 500; text-align: center; }
+        .icon-link { align-items: center; background: transparent; border: 0; color: #111; display: flex; height: 40px; justify-content: center; padding: 0; transition: color .2s ease; }
         .icon-link:hover { color: #8b1718; }
         .product-identity { align-items: center; display: flex; gap: 22px; margin: 26px auto 34px; max-width: 880px; }
-        .product-image { align-items: center; background-color: #eadde4; background-position: center; background-repeat: no-repeat; background-size: cover; border-radius: 17px; color: #8f6a7c; display: flex; flex: 0 0 112px; height: 112px; justify-content: center; overflow: hidden; }
+        .product-image { align-items: center; background-color: #f0f0f0; background-position: center; background-repeat: no-repeat; background-size: cover; border-radius: 17px; color: #111; display: flex; flex: 0 0 112px; height: 112px; justify-content: center; overflow: hidden; }
         .product-identity h2 { font-size: clamp(24px, 4vw, 34px); letter-spacing: -.03em; margin: 0 0 12px; }
         .product-badges { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
         .type-badge, .stock-badge { border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .04em; padding: 8px 13px; text-transform: uppercase; }
         .type-badge { background: #e6f1fb; color: #23577d; } .stock-badge.available { background: #e6f2d8; color: #4f7331; text-transform: none; } .stock-badge.empty { background: #fae3e3; color: #9b3e43; text-transform: none; }
-        .detail-section { margin: 0 auto 28px; max-width: 880px; } .section-label { color: #9ba5ae; font-size: 13px; font-weight: 800; letter-spacing: .1em; margin: 0 0 12px; text-transform: uppercase; }
-        .overview-card, .units-card, .management-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 5px 16px rgba(31,52,64,.04); }
-        .overview-card { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; } .overview-card > div { min-height: 104px; padding: 22px; } .overview-card > div:nth-child(odd) { border-right: 1px solid var(--line); } .overview-card > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); } .overview-card span { color: #9ba5ae; display: block; font-size: 15px; font-weight: 600; margin-bottom: 10px; } .overview-card strong { font-size: 27px; letter-spacing: -.035em; } .green-value { color: #3f7a27; }
-        .section-heading { align-items: center; display: flex; justify-content: space-between; } .add-uom, .add-unit { align-items: center; background: transparent; border: 0; color: #8e1d1d; display: flex; font-size: 14px; font-weight: 700; gap: 5px; } .add-uom { margin-bottom: 12px; } .units-card { overflow: hidden; } .unit-row { align-items: center; background: #fff; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; display: flex; gap: 16px; min-height: 114px; padding: 20px 24px; text-align: left; width: 100%; } .unit-row:hover { background: #fffaf8; } .unit-row:last-of-type { border-bottom: 0; } .unit-chip { align-items: center; background: #fff1eb; border: 1px solid #c8907d; border-radius: 10px; color: #834a3a; display: flex; flex: 0 0 84px; font-weight: 700; justify-content: center; min-height: 42px; padding: 8px; } .unit-copy { display: flex; flex: 1; flex-direction: column; gap: 5px; min-width: 0; } .unit-copy strong { font-size: 17px; } .unit-copy span { color: #a0a9b1; font-size: 14px; } .unit-price { font-size: 17px; white-space: nowrap; } .unit-arrow { color: #a0a8af; } .unit-empty { color: #9ba5ae; padding: 24px; text-align: center; } .add-unit { border-top: 1px solid var(--line); justify-content: center; min-height: 70px; width: 100%; }
-        .management-card { overflow: hidden; } .management-action { align-items: center; background: #fff; border: 0; color: #7b1718; display: flex; font-size: 15px; font-weight: 700; gap: 12px; min-height: 68px; padding: 0 20px; text-align: left; width: 100%; } .management-action + .management-action { border-top: 1px solid var(--line); } .management-action span { flex: 1; } .management-action:hover { background: #fff8f8; } .delete-action { color: #9e4343; }
-        .details-empty { align-items: center; color: #7b8790; display: flex; flex-direction: column; gap: 10px; margin: 100px auto; text-align: center; } .details-empty strong { color: var(--ink); font-size: 20px; } .details-empty span { font-size: 14px; }
+        .detail-section { margin: 0 auto 28px; max-width: 880px; } .section-label { color: #666; font-size: 13px; font-weight: 800; letter-spacing: .1em; margin: 0 0 12px; text-transform: uppercase; }
+        .overview-card, .units-card, .management-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 5px 16px rgba(0,0,0,.06); }
+        .overview-card { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; } .overview-card > div { min-height: 104px; padding: 22px; } .overview-card > div:nth-child(odd) { border-right: 1px solid var(--line); } .overview-card > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); } .overview-card span { color: #666; display: block; font-size: 15px; font-weight: 600; margin-bottom: 10px; } .overview-card strong { font-size: 27px; letter-spacing: -.035em; } .green-value { color: #3f7a27; }
+        .section-heading { align-items: center; display: flex; justify-content: space-between; } .add-uom, .add-unit { align-items: center; background: transparent; border: 0; color: #000; display: flex; font-size: 14px; font-weight: 700; gap: 5px; } .add-uom { margin-bottom: 12px; } .units-card { overflow: hidden; } .unit-row { align-items: center; background: #fff; border: 0; border-bottom: 1px solid var(--line); color: #111; cursor: pointer; display: flex; gap: 16px; min-height: 114px; padding: 20px 24px; text-align: left; width: 100%; } .unit-row:hover { background: #f5f5f5; } .unit-row:last-of-type { border-bottom: 0; } .unit-chip { align-items: center; background: #fff1eb; border: 1px solid #c8907d; border-radius: 10px; color: #834a3a; display: flex; flex: 0 0 84px; font-weight: 700; justify-content: center; min-height: 42px; padding: 8px; } .unit-copy { display: flex; flex: 1; flex-direction: column; gap: 5px; min-width: 0; } .unit-copy strong { font-size: 17px; } .unit-copy span { color: #666; font-size: 14px; } .unit-price { font-size: 17px; white-space: nowrap; } .unit-arrow { color: #111; } .unit-empty { color: #666; padding: 24px; text-align: center; } .add-unit { border-top: 1px solid var(--line); justify-content: center; min-height: 70px; width: 100%; }
+        .management-card { overflow: hidden; } .management-action { align-items: center; background: #fff; border: 0; color: #111; display: flex; font-size: 15px; font-weight: 700; gap: 12px; min-height: 68px; padding: 0 20px; text-align: left; width: 100%; } .management-action + .management-action { border-top: 1px solid var(--line); } .management-action span { flex: 1; } .management-action:hover { background: #f5f5f5; } .management-action:disabled { cursor: wait; opacity: .55; } .delete-action { color: #9e4343; } .management-error { margin: 12px 0 0; }
+        .details-empty { align-items: center; color: #666; display: flex; flex-direction: column; gap: 10px; margin: 100px auto; text-align: center; } .details-empty strong { color: var(--ink); font-size: 20px; } .details-empty span { font-size: 14px; }
+        .stock-modal-backdrop { align-items: center; background: rgba(0,0,0,.65); display: flex; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 30; } .stock-modal { background: #fff; border: 1px solid #000; border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.25); max-width: 440px; padding: 28px; position: relative; width: 100%; } .stock-modal h2 { font-size: 28px; margin: 0 0 8px; } .stock-current { color: #666; font-size: 14px; margin-bottom: 22px; } .stock-current strong { color: var(--ink); } .stock-modal form { display: grid; gap: 10px; } .stock-modal label { display: grid; font-size: 12px; font-weight: 700; gap: 6px; } .stock-modal input { border: 1px solid #000; color: #000; font: inherit; padding: 11px; } .stock-help { color: #666; font-size: 13px; line-height: 1.4; }
         .unit-modal-backdrop { align-items: center; background: rgba(0,0,0,.55); display: flex; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 30; } .unit-details-modal { background: #fff; border: 1px solid #000; border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.25); max-width: 460px; padding: 28px; position: relative; width: 100%; } .unit-details-modal h2 { font-size: 28px; margin: 0 0 22px; } .modal-close { background: #fff; border: 1px solid #000; border-radius: 50%; color: #000; font-size: 22px; height: 34px; line-height: 1; position: absolute; right: 18px; top: 18px; width: 34px; } .unit-detail-grid { border: 1px solid var(--line); display: grid; gap: 0; grid-template-columns: 1fr 1fr; margin-bottom: 22px; } .unit-detail-grid span, .unit-detail-grid strong { border-bottom: 1px solid var(--line); padding: 14px; } .unit-detail-grid span:nth-last-child(-n+2), .unit-detail-grid strong:nth-last-child(-n+2) { border-bottom: 0; } .unit-detail-grid span { color: #6b757d; font-size: 13px; } .unit-details-modal form { display: grid; gap: 13px; } .unit-details-modal label { display: grid; font-size: 12px; font-weight: 700; gap: 6px; } .unit-details-modal input { border: 1px solid #000; color: #000; font: inherit; padding: 11px; } .unit-action-error { color: #000; font-size: 13px; font-weight: 700; } .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; } .modal-actions button { align-items: center; border: 1px solid #000; display: inline-flex; font: inherit; font-size: 13px; font-weight: 700; gap: 7px; justify-content: center; min-height: 42px; padding: 0 13px; } .primary-action { background: #000; color: #fff; } .secondary-action { background: #fff; color: #000; } .danger-action { background: #000; color: #fff; }
         @media (max-width: 640px) { .inventory-details-page { padding: 10px 10px 32px; } .product-identity { gap: 16px; margin: 24px 8px 30px; } .product-image { flex-basis: 92px; height: 92px; } .overview-card > div { min-height: 98px; padding: 17px 15px; } .overview-card span { font-size: 12px; } .overview-card strong { font-size: 22px; } .unit-row { gap: 10px; padding: 16px; } .unit-chip { flex-basis: 70px; font-size: 13px; } .unit-copy strong, .unit-price { font-size: 15px; } .unit-copy span { font-size: 12px; } }
       `}</style>
