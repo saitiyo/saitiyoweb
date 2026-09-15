@@ -1,18 +1,66 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
+import { FormEvent, useState } from "react";
+import { gql } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client/react";
 import {
   ArrowLeft,
   ChevronRight,
+  Check,
   Edit3,
   Package,
   Plus,
+  Star,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import LoadingComponent from "@/app/components/LoadingComponent";
-import { GET_INVENTORY_ITEMS, getInventoryItemId } from "../page";
+
+const GET_INVENTORY_ITEM = gql`
+  query GetInventoryItem($id: ID!) {
+    getInventoryItem(id: $id) {
+      id
+      name
+      imageUri
+      images
+      price
+      costPrice
+      stock
+      description
+      itemType
+      primaryCategory
+      subcategory
+      uoms {
+        id
+        label
+        conversionFactor
+        sellingPrice
+        costPrice
+        isBaseUnit
+        isDefault
+      }
+    }
+  }
+`;
+
+const UPDATE_ITEM_UOM = gql`
+  mutation UpdateItemUoM($id: ID!, $input: UpdateItemUoMInput!) {
+    updateItemUoM(id: $id, input: $input) { id }
+  }
+`;
+
+const SET_DEFAULT_UOM = gql`
+  mutation SetDefaultUoM($uomId: ID!, $itemId: ID!) {
+    setDefaultUoM(uomId: $uomId, itemId: $itemId) { id }
+  }
+`;
+
+const DELETE_ITEM_UOM = gql`
+  mutation DeleteItemUoM($id: ID!) {
+    deleteItemUoM(id: $id) { id }
+  }
+`;
 
 type UnitOfMeasure = {
   id: string;
@@ -25,7 +73,7 @@ type UnitOfMeasure = {
 };
 
 type InventoryDetail = {
-  id: unknown;
+  id: string;
   name: string;
   imageUri?: string | null;
   images?: string[] | null;
@@ -40,29 +88,81 @@ type InventoryDetail = {
 };
 
 type InventoryResponse = {
-  getInventorySiteItems: InventoryDetail[];
+  getInventoryItem: InventoryDetail;
 };
 
 const formatPrice = (value: number) => `Ush ${value.toLocaleString("en-US")}`;
 
 export default function InventoryDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const siteId = typeof params.id === "string" ? params.id : params.id?.[0];
   const itemId = searchParams.get("itemId");
-  const { data, loading, error } = useQuery<InventoryResponse>(GET_INVENTORY_ITEMS, {
-    variables: { siteId },
+  const [selectedUnit, setSelectedUnit] = useState<UnitOfMeasure | null>(null);
+  const [isEditingUnit, setIsEditingUnit] = useState(false);
+  const [unitLabel, setUnitLabel] = useState("");
+  const [unitConversion, setUnitConversion] = useState("");
+  const [unitSellingPrice, setUnitSellingPrice] = useState("");
+  const [unitCostPrice, setUnitCostPrice] = useState("");
+  const [unitActionError, setUnitActionError] = useState("");
+  const { data, loading, error } = useQuery<InventoryResponse>(GET_INVENTORY_ITEM, {
+    variables: { id: itemId },
     skip: !siteId || !itemId,
     fetchPolicy: "no-cache",
   });
+  const mutationOptions = { refetchQueries: itemId ? [{ query: GET_INVENTORY_ITEM, variables: { id: itemId } }] : [] };
+  const [updateItemUom, { loading: isUpdatingUnit }] = useMutation(UPDATE_ITEM_UOM, mutationOptions);
+  const [setDefaultUom, { loading: isSettingDefault }] = useMutation(SET_DEFAULT_UOM, mutationOptions);
+  const [deleteItemUom, { loading: isDeletingUnit }] = useMutation(DELETE_ITEM_UOM, mutationOptions);
 
-  const item = data?.getInventorySiteItems.find((inventoryItem) => getInventoryItemId(inventoryItem.id) === itemId);
+  const item = data?.getInventoryItem;
   const baseUnit = item?.uoms?.find((unit) => unit.isBaseUnit || unit.isDefault) ?? item?.uoms?.[0];
+  const itemUnits = item?.uoms?.length ? item.uoms : baseUnit ? [baseUnit] : [];
   const stock = item?.stock ?? 0;
   const price = item?.price ?? 0;
   const costPrice = item?.costPrice ?? 0;
   const margin = price > 0 ? Math.round(((price - costPrice) / price) * 100) : 0;
   const image = item?.imageUri ?? item?.images?.[0];
+  const openUnitDetails = (unit: UnitOfMeasure) => {
+    setSelectedUnit(unit);
+    setIsEditingUnit(false);
+    setUnitActionError("");
+  };
+  const startEditingUnit = () => {
+    if (!selectedUnit) return;
+    setUnitLabel(selectedUnit.label ?? "");
+    setUnitConversion(String(selectedUnit.conversionFactor ?? ""));
+    setUnitSellingPrice(String(selectedUnit.sellingPrice ?? ""));
+    setUnitCostPrice(String(selectedUnit.costPrice ?? ""));
+    setUnitActionError("");
+    setIsEditingUnit(true);
+  };
+  const saveUnitEdit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedUnit) return;
+    const conversion = Number(unitConversion);
+    const sellingPrice = Number(unitSellingPrice);
+    const costPrice = Number(unitCostPrice);
+    if (!unitLabel.trim() || !Number.isFinite(conversion) || conversion <= 0 || !Number.isFinite(sellingPrice) || sellingPrice < 0 || !Number.isFinite(costPrice) || costPrice < 0) {
+      setUnitActionError("Enter a label, a conversion greater than 0, and valid non-negative prices.");
+      return;
+    }
+    try {
+      await updateItemUom({ variables: { id: selectedUnit.id, input: { label: unitLabel.trim(), conversionFactor: conversion, sellingPrice, costPrice } } });
+      setSelectedUnit(null);
+      setIsEditingUnit(false);
+    } catch (actionError) { setUnitActionError(actionError instanceof Error ? actionError.message : "Unable to update this unit."); }
+  };
+  const makeDefaultUnit = async () => {
+    if (!selectedUnit || !itemId) return;
+    try { await setDefaultUom({ variables: { uomId: selectedUnit.id, itemId } }); setSelectedUnit(null); } catch (actionError) { setUnitActionError(actionError instanceof Error ? actionError.message : "Unable to set the default unit."); }
+  };
+  const removeUnit = async () => {
+    if (!selectedUnit || selectedUnit.isBaseUnit) { setUnitActionError("The base unit cannot be deleted."); return; }
+    if (!window.confirm(`Delete the ${selectedUnit.label ?? "selected"} unit?`)) return;
+    try { await deleteItemUom({ variables: { id: selectedUnit.id } }); setSelectedUnit(null); } catch (actionError) { setUnitActionError(actionError instanceof Error ? actionError.message : "Unable to delete this unit."); }
+  };
 
   if (loading) return <LoadingComponent />;
   if (error || !item) {
@@ -98,12 +198,14 @@ export default function InventoryDetailsPage() {
       </section>
 
       <section className="detail-section">
-        <div className="section-heading"><p className="section-label">Units of measure</p><button type="button" className="add-uom"><Plus size={17} /> Add UoM</button></div>
+        <div className="section-heading"><p className="section-label">Units of measure</p><button type="button" onClick={() => router.push(`/site/${siteId}/inventory/unitsofmeasure?itemId=${encodeURIComponent(String(item.id))}`)} className="add-uom"><Plus size={17} /> Add UoM</button></div>
         <div className="units-card">
-          <div className="unit-row"><span className="unit-chip">{baseUnit?.label ?? "unit"}</span><div className="unit-copy"><strong>{baseUnit?.isBaseUnit ? "Base unit" : "Unit"}</strong><span>{baseUnit?.label ?? "base"} · {baseUnit?.isDefault ? "default" : "available"}</span></div><strong className="unit-price">{formatPrice(baseUnit?.sellingPrice ?? price)}</strong><ChevronRight size={20} className="unit-arrow" /></div>
-          <button type="button" className="add-unit"><Plus size={19} /> Add unit of measure</button>
+          {itemUnits.length > 0 ? itemUnits.map((unit) => <button type="button" className="unit-row" key={unit.id} onClick={() => openUnitDetails(unit)}><span className="unit-chip">{unit.label ?? "unit"}</span><div className="unit-copy"><strong>{unit.isBaseUnit ? "Base unit" : "Unit"}</strong><span>{unit.label ?? "unit"} · {unit.isDefault ? "default" : "available"}</span></div><strong className="unit-price">{formatPrice(unit.sellingPrice ?? price)}</strong><ChevronRight size={20} className="unit-arrow" /></button>) : <div className="unit-empty">No units of measure added yet.</div>}
+          <button type="button" onClick={() => router.push(`/site/${siteId}/inventory/unitsofmeasure?itemId=${encodeURIComponent(String(item.id))}`)} className="add-unit"><Plus size={19} /> Add unit of measure</button>
         </div>
       </section>
+
+      {selectedUnit && <div className="unit-modal-backdrop" role="presentation" onMouseDown={() => { setSelectedUnit(null); setIsEditingUnit(false); }}><section className="unit-details-modal" role="dialog" aria-modal="true" aria-labelledby="unit-details-title" onMouseDown={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => { setSelectedUnit(null); setIsEditingUnit(false); }} aria-label="Close unit details">×</button>{isEditingUnit ? <form onSubmit={saveUnitEdit}><p className="section-label">Edit unit</p><h2 id="unit-details-title">{selectedUnit.label ?? "Unit"}</h2><label>Unit label<input value={unitLabel} onChange={(event) => setUnitLabel(event.target.value)} /></label><label>Conversion factor<input type="number" min="0.01" step="0.01" value={unitConversion} onChange={(event) => setUnitConversion(event.target.value)} /></label><label>Selling price<input type="number" min="0" step="0.01" value={unitSellingPrice} onChange={(event) => setUnitSellingPrice(event.target.value)} /></label><label>Cost price<input type="number" min="0" step="0.01" value={unitCostPrice} onChange={(event) => setUnitCostPrice(event.target.value)} /></label>{unitActionError && <p className="unit-action-error" role="alert">{unitActionError}</p>}<div className="modal-actions"><button type="button" className="secondary-action" onClick={() => setIsEditingUnit(false)}>Cancel</button><button type="submit" className="primary-action" disabled={isUpdatingUnit}><Check size={17} /> Save changes</button></div></form> : <><p className="section-label">Unit of measure</p><h2 id="unit-details-title">{selectedUnit.label ?? "Unit"}</h2><div className="unit-detail-grid"><span>Conversion factor</span><strong>{selectedUnit.conversionFactor ?? 1} base units</strong><span>Selling price</span><strong>{formatPrice(selectedUnit.sellingPrice ?? price)}</strong><span>Cost price</span><strong>{formatPrice(selectedUnit.costPrice ?? 0)}</strong></div>{unitActionError && <p className="unit-action-error" role="alert">{unitActionError}</p>}<div className="modal-actions"><button type="button" className="secondary-action" onClick={startEditingUnit}><Edit3 size={17} /> Edit unit</button>{!selectedUnit.isDefault && <button type="button" className="secondary-action" onClick={makeDefaultUnit} disabled={isSettingDefault}><Star size={17} /> {isSettingDefault ? "Setting..." : "Set as default"}</button>}{!selectedUnit.isBaseUnit && <button type="button" className="danger-action" onClick={removeUnit} disabled={isDeletingUnit}><Trash2 size={17} /> {isDeletingUnit ? "Deleting..." : "Delete unit"}</button>}</div></>}</section></div>}
 
       <section className="detail-section management-section">
         <p className="section-label">Management</p>
@@ -125,9 +227,10 @@ export default function InventoryDetailsPage() {
         .detail-section { margin: 0 auto 28px; max-width: 880px; } .section-label { color: #9ba5ae; font-size: 13px; font-weight: 800; letter-spacing: .1em; margin: 0 0 12px; text-transform: uppercase; }
         .overview-card, .units-card, .management-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 5px 16px rgba(31,52,64,.04); }
         .overview-card { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; } .overview-card > div { min-height: 104px; padding: 22px; } .overview-card > div:nth-child(odd) { border-right: 1px solid var(--line); } .overview-card > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); } .overview-card span { color: #9ba5ae; display: block; font-size: 15px; font-weight: 600; margin-bottom: 10px; } .overview-card strong { font-size: 27px; letter-spacing: -.035em; } .green-value { color: #3f7a27; }
-        .section-heading { align-items: center; display: flex; justify-content: space-between; } .add-uom, .add-unit { align-items: center; background: transparent; border: 0; color: #8e1d1d; display: flex; font-size: 14px; font-weight: 700; gap: 5px; } .add-uom { margin-bottom: 12px; } .units-card { overflow: hidden; } .unit-row { align-items: center; display: flex; gap: 16px; min-height: 114px; padding: 20px 24px; } .unit-chip { align-items: center; background: #fff1eb; border: 1px solid #c8907d; border-radius: 10px; color: #834a3a; display: flex; flex: 0 0 84px; font-weight: 700; justify-content: center; min-height: 42px; padding: 8px; } .unit-copy { display: flex; flex: 1; flex-direction: column; gap: 5px; min-width: 0; } .unit-copy strong { font-size: 17px; } .unit-copy span { color: #a0a9b1; font-size: 14px; } .unit-price { font-size: 17px; white-space: nowrap; } .unit-arrow { color: #a0a8af; } .add-unit { border-top: 1px solid var(--line); justify-content: center; min-height: 70px; width: 100%; }
+        .section-heading { align-items: center; display: flex; justify-content: space-between; } .add-uom, .add-unit { align-items: center; background: transparent; border: 0; color: #8e1d1d; display: flex; font-size: 14px; font-weight: 700; gap: 5px; } .add-uom { margin-bottom: 12px; } .units-card { overflow: hidden; } .unit-row { align-items: center; background: #fff; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; display: flex; gap: 16px; min-height: 114px; padding: 20px 24px; text-align: left; width: 100%; } .unit-row:hover { background: #fffaf8; } .unit-row:last-of-type { border-bottom: 0; } .unit-chip { align-items: center; background: #fff1eb; border: 1px solid #c8907d; border-radius: 10px; color: #834a3a; display: flex; flex: 0 0 84px; font-weight: 700; justify-content: center; min-height: 42px; padding: 8px; } .unit-copy { display: flex; flex: 1; flex-direction: column; gap: 5px; min-width: 0; } .unit-copy strong { font-size: 17px; } .unit-copy span { color: #a0a9b1; font-size: 14px; } .unit-price { font-size: 17px; white-space: nowrap; } .unit-arrow { color: #a0a8af; } .unit-empty { color: #9ba5ae; padding: 24px; text-align: center; } .add-unit { border-top: 1px solid var(--line); justify-content: center; min-height: 70px; width: 100%; }
         .management-card { overflow: hidden; } .management-action { align-items: center; background: #fff; border: 0; color: #7b1718; display: flex; font-size: 15px; font-weight: 700; gap: 12px; min-height: 68px; padding: 0 20px; text-align: left; width: 100%; } .management-action + .management-action { border-top: 1px solid var(--line); } .management-action span { flex: 1; } .management-action:hover { background: #fff8f8; } .delete-action { color: #9e4343; }
         .details-empty { align-items: center; color: #7b8790; display: flex; flex-direction: column; gap: 10px; margin: 100px auto; text-align: center; } .details-empty strong { color: var(--ink); font-size: 20px; } .details-empty span { font-size: 14px; }
+        .unit-modal-backdrop { align-items: center; background: rgba(0,0,0,.55); display: flex; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 30; } .unit-details-modal { background: #fff; border: 1px solid #000; border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.25); max-width: 460px; padding: 28px; position: relative; width: 100%; } .unit-details-modal h2 { font-size: 28px; margin: 0 0 22px; } .modal-close { background: #fff; border: 1px solid #000; border-radius: 50%; color: #000; font-size: 22px; height: 34px; line-height: 1; position: absolute; right: 18px; top: 18px; width: 34px; } .unit-detail-grid { border: 1px solid var(--line); display: grid; gap: 0; grid-template-columns: 1fr 1fr; margin-bottom: 22px; } .unit-detail-grid span, .unit-detail-grid strong { border-bottom: 1px solid var(--line); padding: 14px; } .unit-detail-grid span:nth-last-child(-n+2), .unit-detail-grid strong:nth-last-child(-n+2) { border-bottom: 0; } .unit-detail-grid span { color: #6b757d; font-size: 13px; } .unit-details-modal form { display: grid; gap: 13px; } .unit-details-modal label { display: grid; font-size: 12px; font-weight: 700; gap: 6px; } .unit-details-modal input { border: 1px solid #000; color: #000; font: inherit; padding: 11px; } .unit-action-error { color: #000; font-size: 13px; font-weight: 700; } .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; } .modal-actions button { align-items: center; border: 1px solid #000; display: inline-flex; font: inherit; font-size: 13px; font-weight: 700; gap: 7px; justify-content: center; min-height: 42px; padding: 0 13px; } .primary-action { background: #000; color: #fff; } .secondary-action { background: #fff; color: #000; } .danger-action { background: #000; color: #fff; }
         @media (max-width: 640px) { .inventory-details-page { padding: 10px 10px 32px; } .product-identity { gap: 16px; margin: 24px 8px 30px; } .product-image { flex-basis: 92px; height: 92px; } .overview-card > div { min-height: 98px; padding: 17px 15px; } .overview-card span { font-size: 12px; } .overview-card strong { font-size: 22px; } .unit-row { gap: 10px; padding: 16px; } .unit-chip { flex-basis: 70px; font-size: 13px; } .unit-copy strong, .unit-price { font-size: 15px; } .unit-copy span { font-size: 12px; } }
       `}</style>
     </main>
