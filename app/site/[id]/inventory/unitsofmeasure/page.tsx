@@ -26,7 +26,6 @@ const CREATE_ITEM_UOM = gql`
 			itemId
 			label
 			conversionFactor
-			sellingPrice
 			costPrice
 			isDefault
 			isBaseUnit
@@ -50,7 +49,6 @@ export default function UnitsOfMeasurePage() {
 	const [isCustomOpen, setIsCustomOpen] = useState(false);
 	const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
 	const [conversionFactor, setConversionFactor] = useState("1");
-	const [sellingPrice, setSellingPrice] = useState("0");
 	const [costPrice, setCostPrice] = useState("0");
 	const [errorMessage, setErrorMessage] = useState("");
 	const [createItemUom, { loading: isSaving }] = useMutation(CREATE_ITEM_UOM);
@@ -66,16 +64,13 @@ export default function UnitsOfMeasurePage() {
 		const formData = new FormData(event.currentTarget);
 		const label = isCustomOpen ? String(formData.get("label") ?? "").trim() : selectedUnit?.name.trim() ?? "";
 		const conversionValue = conversionFactor.trim();
-		const sellingValue = sellingPrice.trim();
 		const costValue = costPrice.trim();
 		const conversion = Number(conversionFactor);
-		const selling = Number(sellingPrice);
 		const cost = Number(costPrice);
 
 		if (!itemId) { setErrorMessage("This page needs an inventory item before a unit can be added."); return; }
 		if (!label) { setErrorMessage("Enter a unit label."); return; }
 		if (!conversionValue || !Number.isFinite(conversion) || conversion <= 0) { setErrorMessage("Conversion must be greater than 0."); return; }
-		if (!sellingValue || !Number.isFinite(selling) || selling < 0) { setErrorMessage("Enter a valid selling price."); return; }
 		if (!costValue || !Number.isFinite(cost) || cost < 0) { setErrorMessage("Enter a valid cost price."); return; }
 		setErrorMessage("");
 		try {
@@ -85,7 +80,6 @@ export default function UnitsOfMeasurePage() {
 						itemId,
 						label,
 						conversionFactor: conversion,
-						sellingPrice: selling,
 						costPrice: cost,
 						isDefault: false,
 						isBaseUnit: false,
@@ -111,7 +105,7 @@ export default function UnitsOfMeasurePage() {
 				<button type="button" className="custom-unit-card" onClick={() => { setIsCustomOpen(true); setErrorMessage(""); }}><span className="custom-icon"><PencilLine size={22} /></span><span className="custom-copy"><strong>Custom unit</strong><span>Define your own unit label and conversion</span></span><ChevronRight size={21} className="row-chevron" /></button>
 				{visibleGroups.length > 0 ? visibleGroups.map((group) => <section className="unit-group" key={group.label}><h2><span className="group-symbol">#</span>{group.label}</h2><div className="unit-list">{group.units.map((unit) => <button type="button" className="unit-row" key={unit.code} onClick={() => openUnit(unit)}><span className="unit-code">{unit.code}</span><strong>{unit.name}</strong><ChevronRight size={19} className="row-chevron" /></button>)}</div></section>) : <div className="empty-state"><Search size={24} /><strong>No units found</strong><span>Try a different search term.</span></div>}
 			</div>
-			{(isCustomOpen || selectedUnit) && <div className="modal-backdrop" role="presentation" onMouseDown={closeModal}><section className="unit-modal" role="dialog" aria-modal="true" aria-labelledby="unit-modal-title" onMouseDown={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={closeModal} aria-label="Close"><X size={20} /></button><span className="modal-icon">{isCustomOpen ? <PencilLine size={22} /> : <Box size={22} />}</span><p className="overline">{isCustomOpen ? "New derived unit" : `Add to item ${itemId ? `#${itemId.slice(-6)}` : ""}`}</p><h2 id="unit-modal-title">{isCustomOpen ? "Create custom unit" : selectedUnit?.name}</h2><form onSubmit={saveUnit}>{isCustomOpen && <label>Unit label<input name="label" required placeholder="e.g. pallet" /></label>}<label>Conversion to base unit<input required type="number" min="0.01" step="0.01" value={conversionFactor} onChange={(event) => setConversionFactor(event.target.value)} placeholder="e.g. 12" /></label><label>Selling price<input required type="number" min="0" step="0.01" value={sellingPrice} onChange={(event) => setSellingPrice(event.target.value)} /></label><label>Cost price<input required type="number" min="0" step="0.01" value={costPrice} onChange={(event) => setCostPrice(event.target.value)} /></label>{errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}<button className="modal-submit" type="submit" disabled={isSaving}><Plus size={18} /> {isSaving ? "Adding..." : "Add unit to item"}</button></form></section></div>}
+			{(isCustomOpen || selectedUnit) && <div className="modal-backdrop" role="presentation" onMouseDown={closeModal}><section className="unit-modal" role="dialog" aria-modal="true" aria-labelledby="unit-modal-title" onMouseDown={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={closeModal} aria-label="Close"><X size={20} /></button><span className="modal-icon">{isCustomOpen ? <PencilLine size={22} /> : <Box size={22} />}</span><p className="overline">{isCustomOpen ? "New derived unit" : `Add to item ${itemId ? `#${itemId.slice(-6)}` : ""}`}</p><h2 id="unit-modal-title">{isCustomOpen ? "Create custom unit" : selectedUnit?.name}</h2><form onSubmit={saveUnit}>{isCustomOpen && <label>Unit label<input name="label" required placeholder="e.g. pallet" /></label>}<label>Conversion to base unit<input required type="number" min="0.01" step="0.01" value={conversionFactor} onChange={(event) => setConversionFactor(event.target.value)} placeholder="e.g. 12" /></label><label>Cost price<input required type="number" min="0" step="0.01" value={costPrice} onChange={(event) => setCostPrice(event.target.value)} /></label>{errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}<button className="modal-submit" type="submit" disabled={isSaving}><Plus size={18} /> {isSaving ? "Adding..." : "Add unit to item"}</button></form></section></div>}
 			<style>{pageStyles}</style>
 		</main>
 	);
