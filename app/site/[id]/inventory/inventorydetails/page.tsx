@@ -106,6 +106,7 @@ export default function InventoryDetailsPage() {
   const [unitConversion, setUnitConversion] = useState("");
   const [unitCostPrice, setUnitCostPrice] = useState("");
   const [unitActionError, setUnitActionError] = useState("");
+  const [unitOverride, setUnitOverride] = useState<{ itemId: string; unitId: string; changes: Partial<UnitOfMeasure> } | null>(null);
   const [isAdjustingStock, setIsAdjustingStock] = useState(false);
   const [stockAdjustment, setStockAdjustment] = useState("");
   const [stockUnitId, setStockUnitId] = useState("");
@@ -126,6 +127,7 @@ export default function InventoryDetailsPage() {
   const baseUnit = item?.uoms?.find((unit) => unit.isBaseUnit || unit.isDefault) ?? item?.uoms?.[0];
   const itemUnits = (item?.uoms?.length ? item.uoms : baseUnit ? [baseUnit] : []).map((unit) => ({
     ...unit,
+    ...(unitOverride?.itemId === itemId && unitOverride.unitId === unit.id ? unitOverride.changes : {}),
     isDefault: defaultUnitOverride?.itemId === itemId ? unit.id === defaultUnitOverride.unitId : unit.isDefault,
   }));
   const stock = stockOverride?.itemId === itemId ? stockOverride.value : item?.stock ?? 0;
@@ -155,6 +157,13 @@ export default function InventoryDetailsPage() {
     }
     try {
       await updateItemUom({ variables: { id: selectedUnit.id, input: { label: unitLabel.trim(), conversionFactor: conversion, costPrice } } });
+      if (itemId) {
+        setUnitOverride({
+          itemId,
+          unitId: selectedUnit.id,
+          changes: { label: unitLabel.trim(), conversionFactor: conversion, costPrice },
+        });
+      }
       setSelectedUnit(null);
       setIsEditingUnit(false);
     } catch (actionError) { setUnitActionError(actionError instanceof Error ? actionError.message : "Unable to update this unit."); }
