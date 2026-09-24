@@ -1,15 +1,18 @@
 // components/TaskCard.tsx
-import { Card, Tag, Space } from 'antd';
+import { Card, Tag } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { CSSProperties } from 'react';
 
 interface TaskCardProps {
+  title: string;
   priorities: { label: string; color: string }[];
   content: string;
   date: string;
   time?: string;
+  style?: CSSProperties;
 }
 
-const TaskCard = ({ priorities, content, date, time }: TaskCardProps) => {
+const TaskCard = ({ title, priorities, content, date, time, style }: TaskCardProps) => {
   // Map specific labels to Tailwind/Hex colors based on the image
   const getTagColor = (label: string) => {
     switch (label.toLowerCase()) {
@@ -22,7 +25,7 @@ const TaskCard = ({ priorities, content, date, time }: TaskCardProps) => {
   };
 
   return (
-    <Card className="mb-4 shadow-sm border-none rounded-lg overflow-hidden">
+    <Card className="mb-4 shadow-sm border-none rounded-lg overflow-hidden" style={style}>
       <div className="flex flex-wrap gap-2 mb-3">
         {priorities.map((p, idx) => (
           <Tag 
@@ -35,6 +38,8 @@ const TaskCard = ({ priorities, content, date, time }: TaskCardProps) => {
           </Tag>
         ))}
       </div>
+
+      <h3 className="text-base font-semibold text-gray-900 mb-2">{title}</h3>
       
       <p className="text-gray-600 text-sm leading-relaxed mb-4">
         {content}

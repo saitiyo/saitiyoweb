@@ -10,6 +10,7 @@ import {
   split, 
   InMemoryCache 
 } from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
 
 
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
@@ -68,11 +69,26 @@ const LayoutPage = ({ children }: Readonly<{ children: React.ReactNode }>) => {
       credentials: "include", // Send cookies with requests
     });
 
+    const authLink = setContext((_, { headers }) => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+
+      return {
+        headers: {
+          ...headers,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      };
+    });
+
     // WebSocket link for subscriptions
     const wsLink = typeof window !== "undefined" 
       ? new GraphQLWsLink(
           createClient({
             url: getWebSocketUrl(GQL_URL),
+            connectionParams: () => {
+              const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+              return token ? { Authorization: `Bearer ${token}` } : {};
+            },
             retryAttempts: 5,
             shouldRetry: () => true,
             connectionAckWaitTimeout: 10_000,
@@ -103,9 +119,9 @@ const LayoutPage = ({ children }: Readonly<{ children: React.ReactNode }>) => {
               );
             },
             wsLink,
-            httpLink
+            authLink.concat(httpLink)
           )
-        : httpLink;
+        : authLink.concat(httpLink);
 
     return new ApolloClient({
       link: splitLink,
